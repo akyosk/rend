@@ -67,7 +67,7 @@ git clone https://github.com/akyosk/rend.git
 ## 🎉 编译
 
 ~~~shell
-cd rend && cargo --build
+cd rend && cargo build
 ~~~
 
 **注：编译文件处与target/debug目录下**
