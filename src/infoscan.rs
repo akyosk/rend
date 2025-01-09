@@ -2,6 +2,7 @@ use crate::outprint;
 use crate::tofile;
 use crate::cmsck;
 use crate::port;
+use crate::subdomain;
 use async_trait::async_trait;
 use reqwest::{Client, header::{HeaderMap, HeaderName, HeaderValue,ACCEPT, ACCEPT_LANGUAGE, CACHE_CONTROL, CONNECTION, HOST, REFERER, USER_AGENT}};
 use serde::Deserialize;
@@ -1095,6 +1096,10 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str) -> Result<(), Box<
         Arc::new(InfoC99NL),
     ];
     let threads = arg.get("threads").and_then(|t| t.parse::<usize>().ok()).unwrap_or(300);
+    outprint::Print::infoprint("Start enumerating subdomains");
+    let _ = subdomain::scan_subdomains(&domain, threads).await;
+    outprint::Print::infoprint("End of subdomain enumeration");
+    outprint::Print::infoprint("Start information collection");
     let combined_results = Arc::new(Mutex::new(InfoResults::new()));
     let semaphore = Arc::new(Semaphore::new(threads));
     let tasks:Vec<_> = fetchers.into_iter().map(|fetcher| {

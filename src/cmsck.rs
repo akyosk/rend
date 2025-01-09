@@ -147,20 +147,33 @@ impl Cmsck {
                 let status_as_u64 = status.as_u16() as u64;
                 let len_as_u64 = response_text.len() as u64;
                 self.ckhtml(&url,&status_as_u64,response_text.as_str()).await?;
+                let mut qc_list = vec![];
                 for d in &fingerprints.fingerprint {
                     match d.method.as_str() {
                         "faviconhash" if d.keyword.iter().all(|kw| hash_string.contains(kw)) => {
-                            outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            if !qc_list.contains(&d.cms){
+                                qc_list.push(d.cms.to_string());
+                                outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            }
+
                         }
                         "header" if d.keyword.iter().all(|kw| {
                             headers.iter().any(|(key, value)| {
                                 key.as_str().contains(kw) || value.to_str().unwrap_or_default().contains(kw)
                             })
                         }) => {
-                            outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            if !qc_list.contains(&d.cms){
+                                qc_list.push(d.cms.to_string());
+                                outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            }
+
                         }
                         _ if d.location != "header" && d.keyword.iter().all(|kw| response_text.contains(kw)) => {
-                            outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            if !qc_list.contains(&d.cms){
+                                qc_list.push(d.cms.to_string());
+                                outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                            }
+
                         }
                         _ => {}
                     }

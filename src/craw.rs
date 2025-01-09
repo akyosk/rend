@@ -74,12 +74,18 @@ impl LinkScan {
             ("YY Key", &yy_key),
         ];
         let mut keys_res = vec![]; // 修改为 Vec<String>
+        let mut qc_res = vec![];
         for (name, regex) in regex_list {
             for matched in regex.find_iter(&html) {
-                // 将格式化后的字符串直接推入 Vec<String>
-                let key_entry = format!("Found KEY in {} {}: {}", url, name, matched.as_str());
-                keys_res.push(key_entry.clone()); // 存入 keys_res
-                Print::vulnprint(&key_entry); // 打印时用引用
+                if qc_res.contains(&matched.as_str()) {
+                    // 将格式化后的字符串直接推入 Vec<String>
+                    let key_entry = format!("Found KEY in {} {}: {}", url, name, matched.as_str());
+                    keys_res.push(key_entry.clone()); // 存入 keys_res
+                    Print::vulnprint(&key_entry); // 打印时用引用
+                }else {
+                    // 不存在则添加
+                    qc_res.push(matched.as_str());
+                }
             }
         }
         if !keys_res.is_empty() {
