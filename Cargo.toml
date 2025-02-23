@@ -1,0 +1,32 @@
+[package]
+name = "rend"
+version = "0.0.3"
+edition = "2021"
+
+[profile.release]
+opt-level = "z"
+strip = true
+panic = "abort"
+codegen-untis = 1
+lto = true
+
+[dependencies]
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+futures = "0.3.31"
+sha2 = "0.10"
+async-trait = "0.1.83"
+colored = "2.1.0"
+clap = "4.5.21"
+serde = { version = "1.0.215", features = ["derive"] }
+base64 = "0.22.1"
+toml = "0.8.19"
+chrono = "0.4.38"
+serde_json = "1.0.133"
+regex = "1.11.1"
+scraper = "0.13"
+ring = "0.17.8"
+trust-dns-resolver = "0.22"
+serde_yaml = "0.9.34+deprecated"
+serde_urlencoded = "0.7.1"
+url = "2.5.4"
