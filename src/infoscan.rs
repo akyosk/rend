@@ -126,7 +126,7 @@ impl Displayinfo for InfoResults {
         domain_list.dedup();
         // 过滤掉不需要的域名
         domain_list.retain(|domain| {
-            ![".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com"]
+            ![".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com",".qq.com",".weibo.com"]
                 .iter()
                 .any(|&blocked| domain.ends_with(blocked))
         });

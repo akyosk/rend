@@ -2,6 +2,7 @@
 use reqwest::{Client, header::{HeaderMap, HeaderValue, HeaderName}};
 use serde::Deserialize;
 use std::{collections::HashMap, error::Error, time::Duration};
+use std::fmt::format;
 use url::Url;
 use crate::outprint::Print;
 
@@ -30,11 +31,7 @@ impl Pocs {
 }
 
 async fn send_request(client: &Client, base_url: &str, poc: &Poc) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let mut url = Url::parse(base_url)?;
-    url.path_segments_mut()
-        .map_err(|_| "Invalid base URL")?
-        .pop_if_empty()
-        .extend(poc.path.split('/').filter(|s| !s.is_empty()));
+    let url = format!("{}{}",base_url,poc.path);
 
     let mut headers = HeaderMap::new();
     if let Some(header_map) = &poc.header {
@@ -70,7 +67,6 @@ async fn send_request(client: &Client, base_url: &str, poc: &Poc) -> Result<Stri
 fn check_vulnerability(response: &str, poc: &Poc) -> bool {
     let check_any = |text: &str| poc.body.iter().any(|s| text.contains(s));
     let check_all = |text: &str| poc.body.iter().all(|s| text.contains(s));
-
     match poc.matchers_condition.as_str() {
         "or" => check_any(response),
         "and" => check_all(response),

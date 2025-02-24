@@ -263,7 +263,7 @@ impl Cmsck {
                 self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
 
                 // 定义黑名单域名和去重集合
-                let excluded_domains = [".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com"];
+                let excluded_domains = [".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com",".qq.com",".weibo.com"];
                 let mut unique_urls = std::collections::HashSet::new();
                 let mut rescraw_list = Vec::new();
 
@@ -508,6 +508,13 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     for task in tasks {
         task.await?;
     }
+    // 调用yaml-poc
+    outprint::Print::infoprint("Start loading yaml pocs file");
+    // 调用 pocsmain 执行并发验证
+    // println!("1");
+    pocsmain(req_domains, c.clone()).await?;
+
+    outprint::Print::infoprint("Yaml pocs execution ends");
 
     let ok_list_urls = ok_list.lock().await.clone();
     if !ok_list_urls.is_empty() {
@@ -626,13 +633,6 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         tofile::bypass_urls_save_to_file(filename,&bypass_urls)?;
         outprint::Print::bannerprint(format!("403 URL saving in: {} ",filename).as_str());
     }
-    // 调用yaml-poc
-    outprint::Print::infoprint("Start loading yaml pocs file");
-    // 调用 pocsmain 执行并发验证
-    // println!("1");
-    pocsmain(req_domains, c.clone()).await?;
-
-    outprint::Print::infoprint("Yaml pocs execution ends");
 
 
 

