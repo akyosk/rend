@@ -22,6 +22,8 @@ login
 svn
 swagger
 ag
+ag2
+ag1
 pma
 k8s
 pz

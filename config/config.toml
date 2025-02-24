@@ -1,33 +1,63 @@
+### api-key settings
+#[api_keys]
+## https://fofa.info/api
+#fofa_key = ""
+## https://www.shodan.io/
+#shodan_key = ""
+## https://quake.360.net/quake
+#quake_key = ""
+## https://www.zoomeye.org
+#zoomeye_key = ""
+## https://www.daydaymap.com
+#daydaymap_key = ""
+## https://securitytrails.com
+#securitytrails_key = ""
+## https://hunter.how
+#hunter_key = ""
+## https://hunter.qianxin.com
+#yt_key = ""
+## https://www.virustotal.com
+#virustotal_key = ""
+## https://viewdns.info
+#viewdns_key = ""
+## https://app.binaryedge.io/services/query
+#binaryedge_key = ""
+## https://fullhunt.io/
+#fullhunt_key = ""
+## https://www.whoisxmlapi.com
+#whoisxmlapi_key = ""
+## https://dnsdumpster.com
+#dnsdump_key = ""
+#
+#
 ## api-key settings
 [api_keys]
 # https://fofa.info/api
-fofa_key = ""
+fofa_key = "a1ededd2af12f517d8c023b9df888313"
 # https://www.shodan.io/
-shodan_key = ""
+shodan_key = "KSEJwTz9LF06004zvHBpLn7qd7OSkXCe"
 # https://quake.360.net/quake
-quake_key = ""
+quake_key = "0607b87c-689c-45d4-8975-cb7524bd32b6"
 # https://www.zoomeye.org
-zoomeye_key = ""
+zoomeye_key = "0F3E9419-62E9-bD01a-55BE-80Cd9d8b029"
 # https://www.daydaymap.com
-daydaymap_key = ""
+daydaymap_key = "63acef60cf3e48fd98fb453e8b76f02b"
 # https://securitytrails.com
-securitytrails_key = ""
+securitytrails_key = "aDBj4RaVWL1M04VqG4Q-BMTzmSGU3K8G"
 # https://hunter.how
-hunter_key = ""
+hunter_key = "89dbb48a1d7d61e8a9281472985d8c1f0b989483220583f0772344608b8de4fa"
 # https://hunter.qianxin.com
-yt_key = ""
+yt_key = "905eae7453275db983b38714470593ff144150a4826c3f1c3f5f9f5b8f4b97ae"
 # https://www.virustotal.com
-virustotal_key = ""
+virustotal_key = "8010f79584d153f99b154ce34402856e0d088c9b1ffd5961ec1ec7a856cbd59c"
 # https://viewdns.info
-viewdns_key = ""
+viewdns_key = "60d705f18e1d49eeed818d3b56d368a12647f117"
 # https://app.binaryedge.io/services/query
-binaryedge_key = ""
+binaryedge_key = "a97c4548-4703-4e3a-be24-f19bc7ce0b0b"
 # https://fullhunt.io/
-fullhunt_key = ""
+fullhunt_key = "cffa0ac9-1d06-4858-bad2-53cae90af3b7"
 # https://www.whoisxmlapi.com
-whoisxmlapi_key = ""
-# https://dnsdumpster.com
-dnsdump_key = ""
-
-
+whoisxmlapi_key = "at_1It5Yb1E81ydU9xaYLrywvBx1aoAu"
+#https://dnsdumpster.com
+dnsdump_key = "11b7bee37d62a614e68c476c38d5246c15255ad72e0b022556e602b62634ce38"
 

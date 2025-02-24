@@ -1,6 +1,7 @@
 use std::error::Error;
 // use std::fmt::format;
 use std::sync::Arc;
+use futures::future::ok;
 // use std::time::Duration;
 use reqwest::{Client, Response};
 use serde::Deserialize;
@@ -8,7 +9,7 @@ use ring::digest::{Context, Digest, SHA256};
 use tokio::sync::Semaphore;
 use scraper::{Html, Selector};
 use tokio::sync::Mutex;
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue};
 use crate::outprint;
 use crate::craw;
 use crate::vulns;
@@ -205,8 +206,30 @@ impl Cmsck {
         outprint::Print::okprint(url, status, &len_as_u64,title.as_str());
         Ok(())
     }
-
-    async fn crawing(&self, domain: &str, fingerprints: &Finger) -> Result<Vec<String>,Box<dyn Error + Send + Sync>> {
+    async fn print_cms_response(
+        &self,
+        final_url: &str,
+        response_text: &str,
+        status_as_u64: &u64,
+        domain: &str,
+        fingerprints: &Finger,
+        hash_string: String,
+        headers: HeaderMap,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let len_as_u64 = response_text.len() as u64;
+        self.ckhtml(final_url, status_as_u64, response_text).await?;
+        let mut qc_list = vec![];
+        for d in &fingerprints.finger {
+            if d.matches_rule(&hash_string, &headers, response_text) {
+                if !qc_list.contains(&d.cms) {
+                    qc_list.push(d.cms.to_string());
+                    outprint::Print::cmsprint(domain, status_as_u64, &len_as_u64, &d.cms);
+                }
+            }
+        }
+        Ok(()) // 修复：将小写的 ok(()) 改为大写的 Ok(())
+    }
+    async fn crawing(&self, domain: &str, fingerprints: &Finger) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         let url = domain;
         let hash_url = format!("{}/favicon.ico", &url);
         let response = self.html_response(&url).await?;
@@ -218,7 +241,6 @@ impl Cmsck {
         let hash_number = calculate_hash_as_number(&bytes);
         let hash_string = hash_number.to_string();
 
-
         match status {
             reqwest::StatusCode::OK | reqwest::StatusCode::FOUND => {
                 let mut final_url = url.to_string();
@@ -226,8 +248,7 @@ impl Cmsck {
                     if let Some(location) = headers.get(reqwest::header::LOCATION) {
                         if let Ok(location_url) = location.to_str() {
                             final_url = location_url.to_string();
-                            outprint::Print::bannerprint(&format!("Redirected to: {}", final_url)); // 输出跳转连接
-                            // self.found.push(url.to_string()).await;
+                            outprint::Print::bannerprint(&format!("Redirected to: {}", final_url));
                         }
                     }
                 }
@@ -235,21 +256,55 @@ impl Cmsck {
                     let mut ok_list = self.ok_list.lock().await;
                     ok_list.push(final_url.clone());
                 }
-                let rescraw_list = craw::crawmain(&final_url,response_text.as_str()).await?;
+                // outprint::Print::infoprint("Start your first crawl");
+                // 第一次爬取：获取初始 URL 列表
+                let initial_links = craw::crawmain(&final_url, response_text.as_str()).await?;
                 let status_as_u64 = status.as_u16() as u64;
-                let len_as_u64 = response_text.len() as u64;
-                self.ckhtml(&final_url,&status_as_u64,response_text.as_str()).await?;
-                let mut qc_list = vec![];
-                for d in &fingerprints.finger {
-                    if d.matches_rule(&hash_string, &headers, &response_text) {
-                        if !qc_list.contains(&d.cms) {
-                            qc_list.push(d.cms.to_string());
-                            outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+                self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
+
+                // 定义黑名单域名和去重集合
+                let excluded_domains = [".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com"];
+                let mut unique_urls = std::collections::HashSet::new();
+                let mut rescraw_list = Vec::new();
+
+                // 处理第一次爬取的链接（去重 + 过滤）
+                for url in initial_links {
+                    if excluded_domains.iter().any(|domain| url.contains(domain)) {
+                        continue; // 跳过黑名单域名
+                    }
+                    if unique_urls.insert(url.clone()) {
+                        rescraw_list.push(url);
+                    }
+                }
+                // outprint::Print::infoprint("Start the second crawl");
+                // 二次爬取：遍历第一次的结果
+                let mut second_crawl_results = Vec::new();
+                for url in &rescraw_list {
+                    let new_response = match self.html_response(url).await {
+                        Ok(res) => res,
+                        Err(_e) => {
+                            // eprintln!("Failed to crawl {}: {}", url, e);
+                            continue;
+                        }
+                    };
+                    let new_response_text = new_response.text().await?;
+                    let sub_links = craw::crawmain(url, new_response_text.as_str()).await?;
+
+                    // 处理子链接（去重 + 过滤）
+                    for link in sub_links {
+                        if excluded_domains.iter().any(|domain| link.contains(domain)) {
+                            continue; // 跳过黑名单域名
+                        }
+                        if unique_urls.insert(link.clone()) {
+                            second_crawl_results.push(link);
                         }
                     }
                 }
-                // self.ok_found.push(final_url).await;
-                Ok(rescraw_list.clone())
+
+                // 合并两次结果
+                rescraw_list.extend(second_crawl_results);
+
+                Ok(rescraw_list)
             }
             reqwest::StatusCode::NOT_FOUND => {
                 self.not_found.push(url.to_string()).await;
@@ -259,9 +314,76 @@ impl Cmsck {
                 self.bypass_list.push(url.to_string()).await;
                 Ok(vec![])
             }
-            _ => {Ok(vec![])}
+            _ => Ok(vec![]),
         }
     }
+    // async fn crawing(&self, domain: &str, fingerprints: &Finger) -> Result<Vec<String>,Box<dyn Error + Send + Sync>> {
+    //     let url = domain;
+    //     let hash_url = format!("{}/favicon.ico", &url);
+    //     let response = self.html_response(&url).await?;
+    //     let response_hash = self.html_response(&hash_url).await?;
+    //     let status = response.status();
+    //     let headers = response.headers().clone();
+    //     let response_text = response.text().await?;
+    //     let bytes = response_hash.bytes().await?;
+    //     let hash_number = calculate_hash_as_number(&bytes);
+    //     let hash_string = hash_number.to_string();
+    //
+    //
+    //     match status {
+    //         reqwest::StatusCode::OK | reqwest::StatusCode::FOUND => {
+    //             let mut final_url = url.to_string();
+    //             if status == reqwest::StatusCode::FOUND {
+    //                 if let Some(location) = headers.get(reqwest::header::LOCATION) {
+    //                     if let Ok(location_url) = location.to_str() {
+    //                         final_url = location_url.to_string();
+    //                         outprint::Print::bannerprint(&format!("Redirected to: {}", final_url)); // 输出跳转连接
+    //                         // self.found.push(url.to_string()).await;
+    //                     }
+    //                 }
+    //             }
+    //             {
+    //                 let mut ok_list = self.ok_list.lock().await;
+    //                 ok_list.push(final_url.clone());
+    //             }
+    //             // 新版检测cms
+    //             let rescraw_list = craw::crawmain(&final_url, response_text.as_str()).await?;
+    //             let status_as_u64 = status.as_u16() as u64;
+    //             self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
+    //
+    //
+    //
+    //             // 旧版检测cms
+    //             // let rescraw_list = craw::crawmain(&final_url, response_text.as_str()).await?;
+    //             // // let rescraw_list = craw::crawmain(&rescraw_list,response_text.as_str()).await?;
+    //             // let status_as_u64 = status.as_u16() as u64;
+    //             // let len_as_u64 = response_text.len() as u64;
+    //             // self.ckhtml(&final_url,&status_as_u64,response_text.as_str()).await?;
+    //             // let mut qc_list = vec![];
+    //             // for d in &fingerprints.finger {
+    //             //     if d.matches_rule(&hash_string, &headers, &response_text) {
+    //             //         if !qc_list.contains(&d.cms) {
+    //             //             qc_list.push(d.cms.to_string());
+    //             //             outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
+    //             //         }
+    //             //     }
+    //             // }
+    //
+    //
+    //             // self.ok_found.push(final_url).await;
+    //             Ok(rescraw_list.clone())
+    //         }
+    //         reqwest::StatusCode::NOT_FOUND => {
+    //             self.not_found.push(url.to_string()).await;
+    //             Ok(vec![])
+    //         }
+    //         reqwest::StatusCode::FORBIDDEN => {
+    //             self.bypass_list.push(url.to_string()).await;
+    //             Ok(vec![])
+    //         }
+    //         _ => {Ok(vec![])}
+    //     }
+    // }
     async fn scan_with_path(&self,domain: &str,path:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}{}", domain,path);
@@ -394,7 +516,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         let mut ok_list_tasks = Vec::new();
 
         let paths = Arc::new(
-            include_str!("../dict/editor.txt")
+            include_str!("../dict/path.txt")
                 .lines()
                 .map(String::from)
                 .collect::<Vec<_>>(),
@@ -507,7 +629,8 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     // 调用yaml-poc
     outprint::Print::infoprint("Start loading yaml pocs file");
     // 调用 pocsmain 执行并发验证
-    let _ = pocsmain(req_domains, c.clone());
+    // println!("1");
+    pocsmain(req_domains, c.clone()).await?;
 
     outprint::Print::infoprint("Yaml pocs execution ends");
 

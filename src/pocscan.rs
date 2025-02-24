@@ -14,7 +14,7 @@ struct Poc {
     matchers_condition: String,
     name: String,
     header: Option<HashMap<String, String>>,
-    data: Option<HashMap<String, String>>,
+    data: Option<String>,
     json: Option<HashMap<String, String>>,
 }
 
@@ -24,12 +24,12 @@ pub struct Pocs {
 }
 
 impl Pocs {
-    pub fn from_yaml(content: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn from_yaml(content: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
         Ok(serde_yaml::from_str(content)?)
     }
 }
 
-async fn send_request(client: &Client, base_url: &str, poc: &Poc) -> Result<String, Box<dyn Error>> {
+async fn send_request(client: &Client, base_url: &str, poc: &Poc) -> Result<String, Box<dyn Error + Send + Sync>> {
     let mut url = Url::parse(base_url)?;
     url.path_segments_mut()
         .map_err(|_| "Invalid base URL")?
@@ -44,7 +44,6 @@ async fn send_request(client: &Client, base_url: &str, poc: &Poc) -> Result<Stri
             headers.insert(name, value);
         }
     }
-
     let request_builder = match poc.metch.to_lowercase().as_str() {
         "get" => client.get(url.as_str()).headers(headers),
         "post" => {
@@ -94,10 +93,9 @@ async fn check_poc(client: Client, base_url: String, poc: Poc) {
     }
 }
 
-pub async fn pocsmain(targets: Vec<String>, client: Client) -> Result<(), Box<dyn Error>> {
+pub async fn pocsmain(targets: Vec<String>, client: Client) -> Result<(), Box<dyn Error + Send + Sync>> {
     let yaml_content = include_str!("../config/pocs.yaml");
     let pocs = Pocs::from_yaml(yaml_content)?;
-
     let mut tasks = vec![];
     for target in targets {
         for poc in &pocs.pocs {
