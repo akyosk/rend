@@ -15,6 +15,7 @@
 /actuator
 /env
 /admin/index.php
+/admin/login.html
 /admin/index.aspx
 /index/login.php
 /manager/html

@@ -90,6 +90,13 @@ async fn check_poc(client: Client, base_url: String, poc: Poc) {
 pub async fn pocsmain(targets: Vec<String>, client: Client) -> Result<(), Box<dyn Error + Send + Sync>> {
     let yaml_content = include_str!("../config/pocs.yaml");
     let pocs = Pocs::from_yaml(yaml_content)?;
+    // let pocs = match Pocs::from_yaml(yaml_content) {
+    //     Ok(pocs) => pocs,
+    //     Err(e) => {
+    //         eprintln!("Failed to parse YAML: {}", e);
+    //         return Err(e.into());
+    //     }
+    // };
     let mut tasks = vec![];
     for target in targets {
         for poc in &pocs.pocs {

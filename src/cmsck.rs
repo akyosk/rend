@@ -183,7 +183,7 @@ impl Cmsck {
 
         // 检查响应状态码
         if !status.is_success() {
-            return Err(format!("Failed to fetch homepage: {} - {}", url, status).into());
+            return Ok("None".to_string());
         }
 
         // 获取 HTML 文本
@@ -291,7 +291,8 @@ impl Cmsck {
                     ".google.cn",
                     ".google.hk",
                     ".facebook.com",
-                    ".openresty.com"
+                    ".openresty.com",
+                    ".wordpress.org"
                 ];
                 let mut unique_urls = std::collections::HashSet::new();
                 let mut rescraw_list = Vec::new();
@@ -346,73 +347,6 @@ impl Cmsck {
             _ => Ok(vec![]),
         }
     }
-    // async fn crawing(&self, domain: &str, fingerprints: &Finger) -> Result<Vec<String>,Box<dyn Error + Send + Sync>> {
-    //     let url = domain;
-    //     let hash_url = format!("{}/favicon.ico", &url);
-    //     let response = self.html_response(&url).await?;
-    //     let response_hash = self.html_response(&hash_url).await?;
-    //     let status = response.status();
-    //     let headers = response.headers().clone();
-    //     let response_text = response.text().await?;
-    //     let bytes = response_hash.bytes().await?;
-    //     let hash_number = calculate_hash_as_number(&bytes);
-    //     let hash_string = hash_number.to_string();
-    //
-    //
-    //     match status {
-    //         reqwest::StatusCode::OK | reqwest::StatusCode::FOUND => {
-    //             let mut final_url = url.to_string();
-    //             if status == reqwest::StatusCode::FOUND {
-    //                 if let Some(location) = headers.get(reqwest::header::LOCATION) {
-    //                     if let Ok(location_url) = location.to_str() {
-    //                         final_url = location_url.to_string();
-    //                         outprint::Print::bannerprint(&format!("Redirected to: {}", final_url)); // 输出跳转连接
-    //                         // self.found.push(url.to_string()).await;
-    //                     }
-    //                 }
-    //             }
-    //             {
-    //                 let mut ok_list = self.ok_list.lock().await;
-    //                 ok_list.push(final_url.clone());
-    //             }
-    //             // 新版检测cms
-    //             let rescraw_list = craw::crawmain(&final_url, response_text.as_str()).await?;
-    //             let status_as_u64 = status.as_u16() as u64;
-    //             self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
-    //
-    //
-    //
-    //             // 旧版检测cms
-    //             // let rescraw_list = craw::crawmain(&final_url, response_text.as_str()).await?;
-    //             // // let rescraw_list = craw::crawmain(&rescraw_list,response_text.as_str()).await?;
-    //             // let status_as_u64 = status.as_u16() as u64;
-    //             // let len_as_u64 = response_text.len() as u64;
-    //             // self.ckhtml(&final_url,&status_as_u64,response_text.as_str()).await?;
-    //             // let mut qc_list = vec![];
-    //             // for d in &fingerprints.finger {
-    //             //     if d.matches_rule(&hash_string, &headers, &response_text) {
-    //             //         if !qc_list.contains(&d.cms) {
-    //             //             qc_list.push(d.cms.to_string());
-    //             //             outprint::Print::cmsprint(domain, &status_as_u64, &len_as_u64, &d.cms);
-    //             //         }
-    //             //     }
-    //             // }
-    //
-    //
-    //             // self.ok_found.push(final_url).await;
-    //             Ok(rescraw_list.clone())
-    //         }
-    //         reqwest::StatusCode::NOT_FOUND => {
-    //             self.not_found.push(url.to_string()).await;
-    //             Ok(vec![])
-    //         }
-    //         reqwest::StatusCode::FORBIDDEN => {
-    //             self.bypass_list.push(url.to_string()).await;
-    //             Ok(vec![])
-    //         }
-    //         _ => {Ok(vec![])}
-    //     }
-    // }
     async fn scan_with_path(&self,domain: &str,path:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}{}", domain,path);
@@ -420,11 +354,10 @@ impl Cmsck {
         let status = response.status(); // 先获取状态码
         let html_text = response.text().await?; // 再提取文本内容
 
-        // let url = format!("{}{}", domain,path);
-        // let response = client.get(&url).send().await?;
-        // let status = response.status();
-        // let html_text = response.text().await?;
-        if status.is_success() {
+        if status.is_success() || status.as_u16() == 403 || status.as_u16() == 302 {
+            if status.as_u16() == 403 {
+                self.bypass_list.push(url.to_string()).await;
+            }
             let status_as_u64 = status.as_u16() as u64;
             self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str()).await?;
         }
@@ -438,7 +371,7 @@ impl Cmsck {
         let status = response.status(); // 先获取状态码
         let html_text = response.text().await?; // 再提取文本内容
 
-        if status.is_success() {
+        if status.is_success() || status.as_u16() == 302 {
             let status_as_u64 = status.as_u16() as u64;
             self.ckhtml(url, &status_as_u64,html_text.as_str()).await?;
         }
@@ -452,37 +385,37 @@ impl Cmsck {
         let response = self.client.get(&url).send().await?;
         let status = response.status(); // 先获取状态码
         let html_text = response.text().await?; // 再提取文本内容
-
         // 检查状态码
+        if status.as_u16() == 403{
+            self.bypass_list.push(url.to_string()).await;
+        }
+        if status.as_u16() == 302{
+            self.bypass_list.push(url.to_string()).await;
+            let status_as_u64 = status.as_u16() as u64;
+            self.ckhtml(&url, &status_as_u64,html_text.as_str()).await?;
+        }
         if !status.is_success() {
-            // println!("{} -> Skipped due to non-success status: {}", url, status);
             return Ok(());
         }
 
         // 对比哈希值
         let current_hash = Sha256_sha2::digest(html_text.as_bytes());
         if current_hash.as_slice() == homepage_hash {
-            // println!("{} -> Skipped as duplicate of homepage", url);
             return Ok(());
         }
 
         // 检查响应长度
         if html_text.len() == homepage_length {
-            // println!("{} -> Skipped due to matching length with homepage", url);
             return Ok(());
         }
 
-        // 如果不匹配，打印唯一响应
-        // let status_as_u64 = status.as_u16() as u64;
-        // self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str()).await?;
-        // println!("{} -> Unique response detected", url);
         let _ = editor_urls_save_to_file(filename,&url);
         Ok(())
     }
 }
 
 
-pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<String>,ip_list:Vec<String>) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<String>,mut ip_list:Vec<String>) -> Result<(), Box<dyn Error + Send + Sync>> {
     let file_content = include_str!("../config/finger.json");
     let fingerprints: Finger = match serde_json::from_str(&file_content) {
         Ok(fingerprints) => fingerprints,
@@ -540,39 +473,32 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     // 调用yaml-poc
     outprint::Print::infoprint("Start loading yaml pocs file");
     // 调用 pocsmain 执行并发验证
-    // println!("1");
     pocsmain(req_domains, c.clone()).await?;
 
     outprint::Print::infoprint("Yaml pocs execution ends");
 
     let ok_list_urls = ok_list.lock().await.clone();
+
     if !ok_list_urls.is_empty() {
         outprint::Print::infoprint("Start enumerating editor paths");
         // let paths = Arc::new(include_str!("../dict/path.txt").lines().map(String::from).collect::<Vec<_>>());
         let mut ok_list_tasks = Vec::new();
-
         let paths = Arc::new(
             include_str!("../dict/path.txt")
                 .lines()
                 .map(String::from)
                 .collect::<Vec<_>>(),
         );
-
         let filenames = Arc::new(filename.to_string());
         for domain in ok_list_urls {
             let paths = Arc::clone(&paths); // 克隆 `Arc` 引用计数
-            // let homepage_html = crawer.fetch_homepage(&domain).await?; // 获取主页内容
-            // if homepage_html.is_empty() {
-            //     continue;
-            // }
             let homepage_html = match crawer.fetch_homepage(&domain).await {
                 Ok(content) => content,
                 Err(_e) => {
-                    // outprint::Print::errprint(&format!("Error fetching homepage for {}: {}", domain, e));
-                    // return Err(Box::<dyn Error + Send + Sync>::from(e));
                     continue;
                 }
             };
+
             let homepage_hash = Sha256_sha2::digest(homepage_html.as_bytes()); // 计算主页的哈希值
             let homepage_length = homepage_html.len(); // 记录主页长度
 
@@ -586,7 +512,6 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
                 let task = tokio::spawn(async move {
                     let _permit = semaphore.acquire().await;
                     // let filenames = filenames.clone();
-
                     if let Err(_e) = crawer.scan_with_path_t(&domain, &path, &homepage_hash, homepage_length,&filenames).await {
                         // eprintln!("Error during ok_list path scan: {}", e);
                     }
@@ -638,7 +563,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         // let contents = include_str!("../dict/path.txt");
         // let lines: Vec<String> = contents.lines().map(|s| s.to_string()).collect();
         let mut bypass_tasks = vec![];
-
+        ip_list.push("127.0.0.1".to_string()); // 绕xff
         for domain in bypass_urls.clone() {
             for ip in ip_list.iter() {
                 let crawer = crawer.clone();

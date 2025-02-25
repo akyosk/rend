@@ -54,7 +54,6 @@ old
 webold
 web-old
 config
-ag
 houtai
 guanli
 gl

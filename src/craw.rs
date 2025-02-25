@@ -134,6 +134,16 @@ impl LinkScan {
 pub async fn crawmain(url:&str,html:&str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let link_scan = LinkScan;
     let result = link_scan.crawler(&url,&html).await?;
+    let keywords = ["admin", "login", "system","administrator","config","swagger"]; // 定义关键词列表
+
+    for url in result.iter() {
+        // 检查 URL 是否包含关键词
+        if keywords.iter().any(|&keyword| url.contains(keyword)) {
+            let res = format!("[+] Find sensitive path in URL: {}", url); // 将结果存储在变量中
+            let res_str = res.as_str(); // 获取引用
+            Print::bannerprint(res_str);
+        }
+    }
     Ok(result)
 
 }

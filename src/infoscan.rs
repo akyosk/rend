@@ -154,18 +154,14 @@ impl Displayinfo for InfoResults {
                 ".google.cn",
                 ".google.hk",
                 ".facebook.com",
-                ".openresty.com"
+                ".openresty.com",
+                ".wordpress.org"
             ]
                 .iter()
                 .any(|&blocked| domain.ends_with(blocked))
         });
-        // let unwanted_domains = vec![".google.com", ".baidu.com", ".cloudflare.com",".youtube.com"];
-        //
-        // domain_list.retain(|domain| !unwanted_domains.contains(&domain.as_str()));
-        // for i in domain_list.clone(){
-        //     println!("{}",i);
-        // }
-        ip_list.push("127.0.0.1".to_string()); // 绕xff
+
+
         match tofile::save_to_file(&filename, &domain_list, &ip_list) {
             Ok(_) => outprint::Print::bannerprint(format!("Results saved to {}",&filename).as_str()),
             Err(e) => outprint::Print::infoprint(format!("Error saving results: {}",e).as_str()),
