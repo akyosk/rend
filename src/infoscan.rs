@@ -126,7 +126,36 @@ impl Displayinfo for InfoResults {
         domain_list.dedup();
         // 过滤掉不需要的域名
         domain_list.retain(|domain| {
-            ![".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com",".qq.com",".weibo.com"]
+            ![
+                ".google.com",
+                ".baidu.com",
+                ".cloudflare.com",
+                ".youtube.com",
+                ".cloudflare-dns.com",
+                ".cloudflaressl.com",
+                ".bing.com",
+                ".yahoo.com",
+                ".amazon.com",
+                ".aapanel.com",
+                ".qq.com",
+                ".weibo.com",
+                ".bdstatic.com",
+                ".youdao.com",
+                ".yahoo.cn",
+                ".xunlei.com",
+                ".tudou.com",
+                ".people.com",
+                ".news.cn",
+                ".ludashi.com",
+                ".alipay.com",
+                ".ip138.com",
+                ".ips.com",
+                ".hao123.com",
+                ".google.cn",
+                ".google.hk",
+                ".facebook.com",
+                ".openresty.com"
+            ]
                 .iter()
                 .any(|&blocked| domain.ends_with(blocked))
         });

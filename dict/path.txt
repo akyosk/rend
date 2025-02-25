@@ -11,6 +11,7 @@
 /info
 /core/auth/login
 /actuator/env
+/rcs/web/index.action
 /actuator
 /env
 /admin/index.php
@@ -18,6 +19,7 @@
 /index/login.php
 /manager/html
 /config.yml
+/administrator/index.php
 /admin/admiLogin.asp
 /login.aspx
 /Login/CB/CB.aspx
@@ -25,6 +27,7 @@
 /ak/login.do
 /ccom/login.do
 /cc/login.do
+/vi/login
 /apollo
 /api-docs
 /api/v2/docs

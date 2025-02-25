@@ -263,7 +263,36 @@ impl Cmsck {
                 self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
 
                 // 定义黑名单域名和去重集合
-                let excluded_domains = [".google.com", ".baidu.com", ".cloudflare.com",".youtube.com",".cloudflare-dns.com",".cloudflaressl.com",".bing.com",".yahoo.com",".amazon.com",".aapanel.com",".qq.com",".weibo.com"];
+                let excluded_domains = [
+                    ".google.com",
+                    ".baidu.com",
+                    ".cloudflare.com",
+                    ".youtube.com",
+                    ".cloudflare-dns.com",
+                    ".cloudflaressl.com",
+                    ".bing.com",
+                    ".yahoo.com",
+                    ".amazon.com",
+                    ".aapanel.com",
+                    ".qq.com",
+                    ".weibo.com",
+                    ".bdstatic.com",
+                    ".youdao.com",
+                    ".yahoo.cn",
+                    ".xunlei.com",
+                    ".tudou.com",
+                    ".people.com",
+                    ".news.cn",
+                    ".ludashi.com",
+                    ".alipay.com",
+                    ".ip138.com",
+                    ".ips.com",
+                    ".hao123.com",
+                    ".google.cn",
+                    ".google.hk",
+                    ".facebook.com",
+                    ".openresty.com"
+                ];
                 let mut unique_urls = std::collections::HashSet::new();
                 let mut rescraw_list = Vec::new();
 

@@ -2,8 +2,6 @@
 use reqwest::{Client, header::{HeaderMap, HeaderValue, HeaderName}};
 use serde::Deserialize;
 use std::{collections::HashMap, error::Error, time::Duration};
-use std::fmt::format;
-use url::Url;
 use crate::outprint::Print;
 
 #[derive(Debug, Deserialize, Clone)]
