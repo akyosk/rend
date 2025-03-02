@@ -42,38 +42,38 @@ impl LinkScan {
         let srcset_pattern = Regex::new(r#"(?i)srcset(?:"|'|["']|["']\s*:\s*["']|[\s=:]\s*["'])(https?://\S+?|/\S+?|.*?)["']"#)?;
 
         let amazon_key = Regex::new(r#"AKIA[A-Za-z0-9]{16}"#)?;
-        let google_key = Regex::new(r#"GOOG[\w\W]{10,30}"#)?;
-        let azure_key = Regex::new(r#"AZ[A-Za-z0-9]{34,40}"#)?;
-        let ibm_key = Regex::new(r#"IBM[A-Za-z0-9]{10,40}"#)?;
+        // let google_key = Regex::new(r#"GOOG[\w\W]{10,30}"#)?;
+        // let azure_key = Regex::new(r#"AZ[A-Za-z0-9]{34,40}"#)?;
+        // let ibm_key = Regex::new(r#"IBM[A-Za-z0-9]{10,40}"#)?;
         let ali_key = Regex::new(r#"LTAI[A-Za-z0-9]{12,20}"#)?;
         let tencent_key = Regex::new(r#"^AKID[A-Za-z0-9]{13,20}"#)?;
         // let huawei_key = Regex::new(r#"[A-Z0-9]{20}"#)?;
-        let jd_key = Regex::new(r#"JDC_[A-Z0-9]{28,32}"#)?;
-        let volcengine_key = Regex::new(r#"AKLT[a-zA-Z0-9-_]{0,252}"#)?;
-        let uc_key = Regex::new(r#"UC[A-Za-z0-9]{10,40}"#)?;
-        let qy_key = Regex::new(r#"QY[A-Za-z0-9]{10,40}$"#)?;
-        let kingsoft_key = Regex::new(r#"^AKLT[a-zA-Z0-9-_]{16,28}"#)?;
-        let ctc_key = Regex::new(r#"CTC[A-Za-z0-9]{10,60}"#)?;
-        let ltc_key = Regex::new(r#"LTC[A-Za-z0-9]{10,60}"#)?;
-        let yd_key = Regex::new(r#"YD[A-Za-z0-9]{10,60}"#)?;
-        let yy_key = Regex::new(r#"YY[A-Za-z0-9]{10,40}"#)?;
+        // let jd_key = Regex::new(r#"JDC_[A-Z0-9]{28,32}"#)?;
+        // let volcengine_key = Regex::new(r#"AKLT[a-zA-Z0-9-_]{0,252}"#)?;
+        // let uc_key = Regex::new(r#"UC[A-Za-z0-9]{10,40}"#)?;
+        // let qy_key = Regex::new(r#"QY[A-Za-z0-9]{10,40}$"#)?;
+        // let kingsoft_key = Regex::new(r#"^AKLT[a-zA-Z0-9-_]{16,28}"#)?;
+        // let ctc_key = Regex::new(r#"CTC[A-Za-z0-9]{10,60}"#)?;
+        // let ltc_key = Regex::new(r#"LTC[A-Za-z0-9]{10,60}"#)?;
+        // let yd_key = Regex::new(r#"YD[A-Za-z0-9]{10,60}"#)?;
+        // let yy_key = Regex::new(r#"YY[A-Za-z0-9]{10,40}"#)?;
         let regex_list = vec![
             ("Amazon Key", &amazon_key),
-            ("Google Key", &google_key),
-            ("Azure Key", &azure_key),
-            ("IBM Key", &ibm_key),
+            // ("Google Key", &google_key),
+            // ("Azure Key", &azure_key),
+            // ("IBM Key", &ibm_key),
             ("Alibaba Key", &ali_key),
             ("Tencent Key", &tencent_key),
             // ("Huawei Key", &huawei_key),
-            ("JD Key", &jd_key),
-            ("Volcengine Key", &volcengine_key),
-            ("UC Key", &uc_key),
-            ("QY Key", &qy_key),
-            ("Kingsoft Key", &kingsoft_key),
-            ("CTC Key", &ctc_key),
-            ("LTC Key", &ltc_key),
-            ("YD Key", &yd_key),
-            ("YY Key", &yy_key),
+            // ("JD Key", &jd_key),
+            // ("Volcengine Key", &volcengine_key),
+            // ("UC Key", &uc_key),
+            // ("QY Key", &qy_key),
+            // ("Kingsoft Key", &kingsoft_key),
+            // ("CTC Key", &ctc_key),
+            // ("LTC Key", &ltc_key),
+            // ("YD Key", &yd_key),
+            // ("YY Key", &yy_key),
         ];
         let mut keys_res = vec![]; // 修改为 Vec<String>
         let mut qc_res = vec![];
@@ -134,14 +134,29 @@ impl LinkScan {
 pub async fn crawmain(url:&str,html:&str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let link_scan = LinkScan;
     let result = link_scan.crawler(&url,&html).await?;
-    let keywords = ["admin", "login", "system","administrator","config","swagger"]; // 定义关键词列表
+    let keywords = ["admin", "login", "system", "administrator", "config", "swagger"]; // 定义关键词列表
+
+    // 定义需要排除的文件扩展名
+    let excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"];
+    let excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]; // 定义需要排除的路径模式
 
     for url in result.iter() {
-        // 检查 URL 是否包含关键词
-        if keywords.iter().any(|&keyword| url.contains(keyword)) {
-            let res = format!("[+] Find sensitive path in URL: {}", url); // 将结果存储在变量中
-            let res_str = res.as_str(); // 获取引用
-            Print::bannerprint(res_str);
+        // 排除特定文件类型和路径模式
+        if excluded_extensions.iter().any(|&ext| url.ends_with(ext)) ||
+            excluded_patterns.iter().any(|&pattern| url.contains(pattern)) {
+            continue;
+        }
+
+        // 提取路径部分
+        if let Some(path_start) = url.find("://").map(|i| i + 3) {
+            if let Some(path) = url[path_start..].find('/').map(|i| &url[path_start + i..]) {
+                // 检查路径是否包含关键词
+                if keywords.iter().any(|&keyword| path.contains(keyword)) {
+                    let res = format!("[+] Find sensitive path in URL: {}", url); // 将结果存储在变量中
+                    let res_str = res.as_str(); // 获取引用
+                    Print::bannerprint(res_str);
+                }
+            }
         }
     }
     Ok(result)

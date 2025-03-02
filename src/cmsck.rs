@@ -292,7 +292,9 @@ impl Cmsck {
                     ".google.hk",
                     ".facebook.com",
                     ".openresty.com",
-                    ".wordpress.org"
+                    ".wordpress.org",
+                    "openresty.com",
+                    ".swagger.io"
                 ];
                 let mut unique_urls = std::collections::HashSet::new();
                 let mut rescraw_list = Vec::new();

@@ -9,6 +9,7 @@
 /pma
 /phpmyadmin
 /info
+/loginIndex
 /core/auth/login
 /actuator/env
 /rcs/web/index.action
@@ -31,6 +32,8 @@
 /vi/login
 /apollo
 /api-docs
+/status?full=true
+/tpl
 /api/v2/docs
 /api/v2/docs.html
 /oauth/login
@@ -42,9 +45,12 @@
 /conf.yml
 /web.zip
 /old.zip
+/logs/20250301_access.log
 /new.zip
 /xxl-job-admin
 /swagger-ui.html
+/login/dbconf.php～
+/manage/common/login.html
 /Utility/UEditor/controller.ashx?action=catchimage
 /ueditor/index.html
 /UEditor/controller.ashx?action=catchimage

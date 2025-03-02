@@ -155,7 +155,9 @@ impl Displayinfo for InfoResults {
                 ".google.hk",
                 ".facebook.com",
                 ".openresty.com",
-                ".wordpress.org"
+                ".wordpress.org",
+                "openresty.com",
+                ".swagger.io"
             ]
                 .iter()
                 .any(|&blocked| domain.ends_with(blocked))
