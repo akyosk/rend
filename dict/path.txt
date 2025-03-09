@@ -11,6 +11,10 @@
 /info
 /loginIndex
 /core/auth/login
+/config/config_global.bak
+/config/config_global.php.bak
+/config/config.php.bak
+/config/config.bak
 /actuator/env
 /rcs/web/index.action
 /actuator
@@ -31,6 +35,7 @@
 /cc/login.do
 /vi/login
 /apollo
+/forum.php
 /api-docs
 /status?full=true
 /tpl
@@ -45,6 +50,9 @@
 /conf.yml
 /web.zip
 /old.zip
+/prod-api/v2/api-docs
+/prod-api/v3/api-docs
+/prod-api/durid/login.html
 /logs/20250301_access.log
 /new.zip
 /xxl-job-admin

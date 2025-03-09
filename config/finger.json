@@ -9688,6 +9688,12 @@
     "location": "body",
     "logic": "and",
     "rule": ["vben","dashboard/analysis"]
+  }, {
+    "cms": "Discuz!",
+    "method": "keyword",
+    "location": "body",
+    "logic": "and",
+    "rule": ["Discuz!","/forum.php"]
   }
   ]
 }

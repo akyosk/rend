@@ -134,7 +134,7 @@ impl LinkScan {
 pub async fn crawmain(url:&str,html:&str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let link_scan = LinkScan;
     let result = link_scan.crawler(&url,&html).await?;
-    let keywords = ["admin", "login", "system", "administrator", "config", "swagger"]; // 定义关键词列表
+    let keywords = ["admin", "login", "system", "administrator", "config", "swagger","forum.php"]; // 定义关键词列表
 
     // 定义需要排除的文件扩展名
     let excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"];

