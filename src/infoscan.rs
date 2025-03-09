@@ -446,7 +446,11 @@ impl InfoFetcher for InfoYT {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let query = base64::encode(format!("domain=\"{}\"",domain));
         let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2010-01-01&end_time=2025-12-28",keys.yt_key,query);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(15)).default_headers({
+                                                                                            let mut headers = HeaderMap::new();
+                                                                                            headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
+                                                                                            headers
+                                                                                        }).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("YT error status code: {}", response.status()).as_str());
