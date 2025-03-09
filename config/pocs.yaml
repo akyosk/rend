@@ -311,3 +311,10 @@ pocs:
         - '$_config'
       matchers-condition: or
       name: "web bak info vuln"
+    - metch: "get"
+      path: '/gpt/pictureproxy.php?url=/www/wwwroot/sxxp/web/bootstrap/cache/config.php'
+      body:
+        - 'file_get_contents'
+        - 'Failed to open stream'
+      matchers-condition: or
+      name: "Laravel / ThinkSNS fileread vuln"
