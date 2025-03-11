@@ -4,6 +4,9 @@ impl Print{
     pub fn okprint(domain: &str, status: &u64, lens: &u64, title: &str){
         println!("{}",format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ]", domain, status, lens, title).blue());
     }
+    pub fn vuln_bypass(domain: &str, status: &u64, lens: &u64, title: &str,ip: Option<&str>){
+        println!("{}",format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ] | [IP -> {}]", domain, status, lens, title,ip.unwrap_or("N/A")).red().bold());
+    }
     pub fn cmsprint(domain: &str, status: &u64, lens: &u64,finger: &str){
         println!("{}",format!("[*][CMS][{}] | {} | {} | {} |", domain, status, lens, finger).magenta().bold());
     }

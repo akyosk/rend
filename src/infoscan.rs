@@ -171,7 +171,8 @@ impl Displayinfo for InfoResults {
         outprint::Print::bannerprint(format!("Finally found {} subdomains and {} IPs and {} IPs-Ports", domain_list.len(), ip_list.len(),ip_port_list.len()).as_str());
         domain_list.extend(ip_port_list.clone());
         outprint::Print::infoprint("Start checking web service cms");
-        if let Err(_e) = cmsck::cmsmain(&filename.as_str(),threads,client,domain_list,ip_list).await {
+        let filename = filename.to_string();
+        if let Err(_e) = cmsck::cmsmain(&filename,threads,client,domain_list,ip_list).await {
 
         }
     }

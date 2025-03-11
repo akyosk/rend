@@ -38,7 +38,7 @@ pub fn ip_urls_save_to_file(file_name: &str, domains: &[String]) -> io::Result<(
         .create(true) // 如果文件不存在则创建
         .append(true) // 如果文件存在则追加内容
         .open(file_name)?;
-    writeln!(file, "\n[IP-PORTS]")?;
+    writeln!(file, "[IP-PORTS]")?;
     for domain in domains {
         writeln!(file, "{}", domain)?;
     }
@@ -64,7 +64,7 @@ pub fn bypass_urls_save_to_file(file_name: &str, domains: &[String]) -> io::Resu
         .create(true) // 如果文件不存在则创建
         .append(true) // 如果文件存在则追加内容
         .open(file_name)?;
-    writeln!(file, "\n[403 RESPONSE]")?;
+
     for domain in domains {
         writeln!(file, "{}", domain)?;
     }
@@ -78,6 +78,29 @@ pub fn editor_urls_save_to_file(file_name: &str, url: &str) -> io::Result<()> {
         .append(true) // 如果文件存在则追加内容
         .open(file_name)?;
     writeln!(file, "{}", url)?;
+    Ok(())
+}
+
+pub fn req_urls_save_to_file(file_name: &str,domain: &str, status: &u64, lens: &u64, title: &str,ip:Option<&str>) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .create(true) // 如果文件不存在则创建
+        .append(true) // 如果文件存在则追加内容
+        .open(file_name)?;
+    if ip.is_some() {
+        writeln!(file, "{}", format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ]", domain, status, lens, title))?;
+    } else {
+        writeln!(file, "{}", format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ] | [IP -> {}]", domain, status, lens, title,ip.unwrap_or("N/A")))?;
+    }
+
+    Ok(())
+}
+
+pub fn other_save_to_file(file_name: &str,other:&str) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .create(true) // 如果文件不存在则创建
+        .append(true) // 如果文件存在则追加内容
+        .open(file_name)?;
+    writeln!(file, "{}", other)?;
     Ok(())
 }
 

@@ -318,3 +318,17 @@ pocs:
         - 'Failed to open stream'
       matchers-condition: or
       name: "Laravel / ThinkSNS fileread vuln"
+    - metch: "get"
+      path: '/index.php?a=display&templateFile=README.md'
+      body:
+        - '## README'
+      matchers-condition: or
+      name: "Laravel / ThinkSNS fileread vuln"
+    - metch: "get"
+      path: '/club/server/getClubAllUsers'
+      body:
+        - 'pwd'
+        - 'loginName'
+        - 'createdBy'
+      matchers-condition: and
+      name: "BC userinfo vuln"

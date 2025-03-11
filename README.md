@@ -85,7 +85,7 @@ git clone https://github.com/akyosk/rend.git
 cd rend && cargo build --release
 ~~~
 
-**注：编译文件处与target/debug目录下**
+**注：编译文件处与target/release目录下**
 
 ## ⚡️ 使用
 

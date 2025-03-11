@@ -194,7 +194,7 @@ impl Cmsck {
         Ok(self.client.get(url).send().await?)
     }
 
-    async fn ckhtml(&self,url:&str,status: &u64, html_text: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn ckhtml(&self,url:&str,status: &u64, html_text: &str,filename:&str,ip:Option<&str>) -> Result<(), Box<dyn Error + Send + Sync>> {
         let document = Html::parse_document(&html_text); // 解析 HTML 文档
         let title_selector = Selector::parse("title").unwrap_or_else(|_| Selector::parse("*").unwrap());
         let title = if let Some(title_element) = document.select(&title_selector).next() {
@@ -203,9 +203,17 @@ impl Cmsck {
             "Not found title".to_string()
         };
         let len_as_u64 = html_text.len() as u64;
-        outprint::Print::okprint(url, status, &len_as_u64,title.as_str());
+
+        if ip.is_none() {
+            outprint::Print::okprint(url, status, &len_as_u64,title.as_str());
+            let _ = tofile::req_urls_save_to_file(filename,url, status, &len_as_u64,title.as_str(),None);
+        } else {
+            outprint::Print::vuln_bypass(url, status, &len_as_u64,title.as_str(),ip);
+            let _ = tofile::req_urls_save_to_file(filename, url, status, &len_as_u64, title.as_str(), ip);
+        }
         Ok(())
     }
+
     async fn print_cms_response(
         &self,
         final_url: &str,
@@ -215,9 +223,10 @@ impl Cmsck {
         fingerprints: &Finger,
         hash_string: String,
         headers: HeaderMap,
+        filename:&str
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let len_as_u64 = response_text.len() as u64;
-        self.ckhtml(final_url, status_as_u64, response_text).await?;
+        self.ckhtml(final_url, status_as_u64, response_text,&filename,None).await?;
         let mut qc_list = vec![];
         for d in &fingerprints.finger {
             if d.matches_rule(&hash_string, &headers, response_text) {
@@ -229,7 +238,7 @@ impl Cmsck {
         }
         Ok(()) // 修复：将小写的 ok(()) 改为大写的 Ok(())
     }
-    async fn crawing(&self, domain: &str, fingerprints: &Finger) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+    async fn crawing(&self, domain: &str, fingerprints: &Finger,filename: &str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         let url = domain;
         let hash_url = format!("{}/favicon.ico", &url);
         let response = self.html_response(&url).await?;
@@ -260,7 +269,7 @@ impl Cmsck {
                 // 第一次爬取：获取初始 URL 列表
                 let initial_links = craw::crawmain(&final_url, response_text.as_str()).await?;
                 let status_as_u64 = status.as_u16() as u64;
-                self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers).await?;
+                self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers,&filename).await?;
 
                 // 定义黑名单域名和去重集合
                 let excluded_domains = [
@@ -349,7 +358,7 @@ impl Cmsck {
             _ => Ok(vec![]),
         }
     }
-    async fn scan_with_path(&self,domain: &str,path:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn scan_with_path(&self,domain: &str,path:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}{}", domain,path);
         let response = self.client.get(&url).send().await?;
@@ -361,12 +370,12 @@ impl Cmsck {
                 self.bypass_list.push(url.to_string()).await;
             }
             let status_as_u64 = status.as_u16() as u64;
-            self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str()).await?;
+            self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str(),&filename,None).await?;
         }
         Ok(())
 
     }
-    async fn scan_with_bypass(&self,url: &str,ip:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn scan_with_bypass(&self,url: &str,ip:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut headers = HeaderMap::new();
         headers.insert("X-Forwarded-For", HeaderValue::from_str(ip)?);  // 添加 X-Forwarded-For 头部
         let response = self.client.get(url).headers(headers).send().await?;
@@ -375,7 +384,7 @@ impl Cmsck {
 
         if status.is_success() || status.as_u16() == 302 {
             let status_as_u64 = status.as_u16() as u64;
-            self.ckhtml(url, &status_as_u64,html_text.as_str()).await?;
+            self.ckhtml(url, &status_as_u64,html_text.as_str(),&filename,Some(&ip)).await?;
         }
         Ok(())
 
@@ -394,7 +403,7 @@ impl Cmsck {
         if status.as_u16() == 302{
             self.bypass_list.push(url.to_string()).await;
             let status_as_u64 = status.as_u16() as u64;
-            self.ckhtml(&url, &status_as_u64,html_text.as_str()).await?;
+            self.ckhtml(&url, &status_as_u64,html_text.as_str(),filename,None).await?;
         }
         if !status.is_success() {
             return Ok(());
@@ -452,16 +461,20 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
 
     let semaphore = Arc::new(Semaphore::new(threads)); // 并发限制
     let rescraw = Arc::new(Mutex::new(Rescraw::new()));
+    let filename_clone = Arc::new(filename.to_string());
     let mut tasks = vec![];
+    let _ = tofile::other_save_to_file(&filename,"\n[URLS CMS INFO]");
     for domain in req_domains.clone() {
+        let filename = Arc::new(filename_clone.to_string());
         let fingerprints = Arc::clone(&fingerprints);
         let crawer = crawer.clone();
         let semaphore = Arc::clone(&semaphore);
         let rescraw = Arc::clone(&rescraw);
+        let filename = Arc::clone(&filename);
 
         let task = tokio::spawn(async move {
             let _permit = semaphore.acquire().await;
-            if let Ok(results) = crawer.crawing(&domain, &fingerprints).await {
+            if let Ok(results) = crawer.crawing(&domain, &fingerprints,&filename).await {
                 let mut rescraw = rescraw.lock().await;
                 rescraw.push(results);
             }
@@ -483,6 +496,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
 
     if !ok_list_urls.is_empty() {
         outprint::Print::infoprint("Start enumerating editor paths");
+        let _ = tofile::other_save_to_file(filename,"\n[URLS PATH INFO]");
         // let paths = Arc::new(include_str!("../dict/path.txt").lines().map(String::from).collect::<Vec<_>>());
         let mut ok_list_tasks = Vec::new();
         let paths = Arc::new(
@@ -491,7 +505,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
                 .map(String::from)
                 .collect::<Vec<_>>(),
         );
-        let filenames = Arc::new(filename.to_string());
+        let filename = Arc::new(filename.to_string());
         for domain in ok_list_urls {
             let paths = Arc::clone(&paths); // 克隆 `Arc` 引用计数
             let homepage_html = match crawer.fetch_homepage(&domain).await {
@@ -510,11 +524,11 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
                 let domain = domain.clone(); // 克隆 domain，确保独立
                 let homepage_hash = homepage_hash.clone(); // 克隆主页哈希值
                 let homepage_length = homepage_length; // 直接传递长度（无需克隆）
-                let filenames = Arc::clone(&filenames);
+                let filename = Arc::clone(&filename);
                 let task = tokio::spawn(async move {
                     let _permit = semaphore.acquire().await;
                     // let filenames = filenames.clone();
-                    if let Err(_e) = crawer.scan_with_path_t(&domain, &path, &homepage_hash, homepage_length,&filenames).await {
+                    if let Err(_e) = crawer.scan_with_path_t(&domain, &path, &homepage_hash, homepage_length,&filename).await {
                         // eprintln!("Error during ok_list path scan: {}", e);
                     }
                 });
@@ -535,16 +549,17 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         let contents = include_str!("../dict/path.txt");
         let lines: Vec<String> = contents.lines().map(|s| s.to_string()).collect();
         let mut notfound_tasks = vec![];
-
+        let filename = Arc::new(filename.to_string());
         for domain in not_found_urls {
             for path in lines.iter() {
                 let crawer = crawer.clone();
                 let path = path.clone(); // 确保路径的独立性
                 let semaphore = semaphore.clone();
                 let domain = domain.clone();
+                let filename = Arc::clone(&filename);
                 let task = tokio::spawn(async move {
                     let _permit = semaphore.acquire().await; // 限制并发
-                    if let Err(_e) = crawer.scan_with_path(&domain, &path).await {
+                    if let Err(_e) = crawer.scan_with_path(&domain, &path,&filename).await {
                         // outprint::Print::errprint(format!("Error crawling {}: {}", domain, e).as_str());
                     }
                 });
@@ -562,19 +577,22 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
 
     if !bypass_urls.is_empty() {
         outprint::Print::infoprint("Start Bypass 403 response urls");
+        let _ = tofile::other_save_to_file(filename,"\n[403 Bypass URLS]");
         // let contents = include_str!("../dict/path.txt");
         // let lines: Vec<String> = contents.lines().map(|s| s.to_string()).collect();
         let mut bypass_tasks = vec![];
         ip_list.push("127.0.0.1".to_string()); // 绕xff
+        let filename = Arc::new(filename.to_string());
         for domain in bypass_urls.clone() {
             for ip in ip_list.iter() {
                 let crawer = crawer.clone();
                 let ip = ip.clone(); // 确保路径的独立性
                 let semaphore = semaphore.clone();
                 let domain = domain.clone();
+                let filename = Arc::clone(&filename);
                 let task = tokio::spawn(async move {
                     let _permit = semaphore.acquire().await; // 限制并发
-                    if let Err(_e) = crawer.scan_with_bypass(&domain, &ip).await {
+                    if let Err(_e) = crawer.scan_with_bypass(&domain, &ip,&filename).await {
                         // outprint::Print::errprint(format!("Error crawling {}: {}", domain, e).as_str());
                     }
                 });
@@ -586,7 +604,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
             task.await?;
         }
         outprint::Print::infoprint("End of enumeration 403 response urls");
-        tofile::bypass_urls_save_to_file(filename,&bypass_urls)?;
+        tofile::bypass_urls_save_to_file(&filename, &bypass_urls)?;
         outprint::Print::bannerprint(format!("403 URL saving in: {} ",filename).as_str());
     }
 
@@ -600,7 +618,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     #[allow(dead_code)]
     let res = rescraw_locked.rt();
 
-    tofile::urls_save_to_file(filename,&res.clone())?;
+    tofile::urls_save_to_file(&filename, &res.clone())?;
 
     outprint::Print::bannerprint(format!("URL saving address with parameters: {} ",filename).as_str());
     outprint::Print::infoprint("Start detecting parameter vulnerabilities");
