@@ -2,6 +2,7 @@
 use std::error::Error;
 use std::sync::Arc;
 use async_trait::async_trait;
+use base64::engine::general_purpose::STANDARD;
 use futures::future::join_all;
 use reqwest::Client;
 use tokio::sync::{Mutex, Semaphore};
@@ -9,6 +10,7 @@ use serde_json::Value;
 use crate::outprint;
 use serde_json::json;
 use reqwest::header::HeaderMap;
+use base64::engine::Engine as _;
 struct InfoIPRes{
     ips: InfoPortRes
 }
@@ -86,7 +88,8 @@ impl InfoPort for ShodanIp{
 #[async_trait]
 impl InfoPort for FofaIp{
     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-        let base64_str = base64::encode(format!("ip={}", ip));
+        let base64_str = STANDARD.encode(format!("ip={}", ip));
+        // let base64_str = base64::encode(format!("ip={}", ip));
         let url = format!("https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true", api_keys.fofa,base64_str);
         let response = client.get(&url).send().await?;
         let mut results = InfoPortRes::new();
@@ -169,8 +172,9 @@ impl InfoPort for QuakeIp {
 #[async_trait]
 impl InfoPort for YtIp {
     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-        let query = base64::encode(format!("ip=\"{}\"",ip));
-        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2010-01-01&end_time=2025-12-28",api_keys.yt,query);
+        let query = STANDARD.encode(format!("ip=\"{}\"", ip));
+        // let query = base64::encode(format!("ip=\"{}\"",ip));
+        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",api_keys.yt,query);
         let response = client.get(&url).send().await?;
         let mut results = InfoPortRes::new();
         if !response.status().is_success() {

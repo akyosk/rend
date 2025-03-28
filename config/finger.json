@@ -6357,12 +6357,6 @@
     "logic": "and",
     "rule": ["企业级流控云路由器", "href=\"http://www.ifw8.cn\""]
   }, {
-    "cms": "ShopXO",
-    "method": "keyword",
-    "location":"body",
-    "logic": "and",
-    "rule": ["Powered by <a href=\"http://shopxo.net/\" title=\"ShopXO电商系统\" target=\"_blank\">"]
-  }, {
     "cms": "狮子鱼CMS",
     "method": "keyword",
     "location":"body",
@@ -9694,6 +9688,24 @@
     "location": "body",
     "logic": "and",
     "rule": ["Discuz!","/forum.php"]
+  }, {
+    "cms": "CRMEB CMS",
+    "method": "keyword",
+    "location": "body",
+    "logic": "or",
+    "rule": ["<title>CRMEB</title>"]
+  }, {
+    "cms": "若依管理系统",
+    "method": "keyword",
+    "location": "body",
+    "logic": "or",
+    "rule": ["<title>若依管理系统</title>"]
+  }, {
+    "cms": "ShopXO",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["ShopXO电商系统","http://shopxo.net/"]
   }
   ]
 }

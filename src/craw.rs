@@ -3,7 +3,8 @@ use crate::tofile;
 use regex::Regex;
 use std::collections::HashSet;
 use std::error::Error;
-use futures::stream::StreamExt;
+// use futures::stream::StreamExt;
+use crate::infoscan::OtherSets;
 
 #[allow(dead_code)]
 struct Links{
@@ -131,34 +132,34 @@ impl LinkScan {
 
 }
 
-pub async fn crawmain(url:&str,html:&str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+pub async fn crawmain(
+    url: &str,
+    html: &str,
+    other_sets: &OtherSets
+) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let link_scan = LinkScan;
-    let result = link_scan.crawler(&url,&html).await?;
-    let keywords = ["admin", "login", "system", "administrator", "config", "swagger","forum.php"]; // 定义关键词列表
+    let result = link_scan.crawler(url, html).await?;
 
-    // 定义需要排除的文件扩展名
-    let excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"];
-    let excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]; // 定义需要排除的路径模式
-
-    for url in result.iter() {
-        // 排除特定文件类型和路径模式
-        if excluded_extensions.iter().any(|&ext| url.ends_with(ext)) ||
-            excluded_patterns.iter().any(|&pattern| url.contains(pattern)) {
+    for url in &result {
+        // 修复点1：使用字符串引用并自动解引用为 &str
+        if other_sets.excluded_extensions.iter().any(|ext| url.ends_with(ext)) ||
+            other_sets.excluded_patterns.iter().any(|pattern| url.contains(pattern))
+        {
             continue;
         }
 
-        // 提取路径部分
-        if let Some(path_start) = url.find("://").map(|i| i + 3) {
-            if let Some(path) = url[path_start..].find('/').map(|i| &url[path_start + i..]) {
-                // 检查路径是否包含关键词
-                if keywords.iter().any(|&keyword| path.contains(keyword)) {
-                    let res = format!("[+] Find sensitive path in URL: {}", url); // 将结果存储在变量中
-                    let res_str = res.as_str(); // 获取引用
-                    Print::bannerprint(res_str);
-                }
+        // 修复点2：优化路径提取逻辑
+        let path = url.splitn(2, "://")
+            .nth(1)
+            .and_then(|s| s.split('/').nth(1));
+
+        if let Some(path) = path {
+            // 修复点3：使用自动解引用
+            if other_sets.keywords.iter().any(|keyword| path.contains(keyword)) {
+                let res = format!("[+] Find sensitive path in URL: {}", url);
+                Print::bannerprint(&res);
             }
         }
     }
     Ok(result)
-
 }

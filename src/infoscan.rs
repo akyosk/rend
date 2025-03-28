@@ -19,13 +19,27 @@ use scraper::{Html, Selector};
 use chrono::Local;
 use futures::future::join_all;
 use tokio::sync::Semaphore;
+// 在文件顶部添加以下引入
+use base64::engine::Engine as _;
+use base64::engine::general_purpose::STANDARD;
+
+
 #[async_trait]
 trait InfoFetcher{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>>;
 }
 #[async_trait]
 trait Displayinfo{
-    async fn display(&mut self,domian:&str,threads: usize,client: Client,api_keys: ApiKeys);
+    async fn display(&mut self,domian:&str,threads: usize,client: Client,api_keys: ApiKeys,otherset:OtherSets);
+}
+
+
+#[derive(Debug, Deserialize,Clone)]
+pub struct OtherSets {
+    pub(crate) keywords: Vec<String>,
+    pub(crate) excluded_extensions: Vec<String>,
+    pub(crate) excluded_patterns: Vec<String>,
+    pub(crate) pass_domain: Vec<String>,
 }
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -51,7 +65,7 @@ pub struct ApiKeys {
 }
 impl Config {
     pub fn from_default() -> Result<Self, Box<dyn Error>> {
-        let content = include_str!("../config/config.toml"); // 默认嵌入配置
+        let content = include_str!("../config/api.toml"); // 默认嵌入配置
         let config: Config = toml::from_str(content)?;
         Ok(config)
     }
@@ -88,13 +102,14 @@ struct InfoArchive;
 struct InfoDnshistory;
 struct InfoNetlas;
 struct InfoC99NL;
+struct InfoAlienvault;
 struct InfoResults{
     domain_list: Vec<String>,
     ip_list: Vec<String>,
 }
 #[async_trait]
 impl Displayinfo for InfoResults {
-    async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys) {
+    async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
         outprint::Print::infoprint("Start organizing data");
         let filename = format!("{}.txt",domian.replace('.', "_"));
         let mut domain_list = self.domain_list.clone();
@@ -124,45 +139,11 @@ impl Displayinfo for InfoResults {
 
         domain_list.sort();
         domain_list.dedup();
+        let pass_domain = &otherset.pass_domain;
         // 过滤掉不需要的域名
         domain_list.retain(|domain| {
-            ![
-                ".google.com",
-                ".baidu.com",
-                ".cloudflare.com",
-                ".youtube.com",
-                ".cloudflare-dns.com",
-                ".cloudflaressl.com",
-                ".bing.com",
-                ".yahoo.com",
-                ".amazon.com",
-                ".aapanel.com",
-                ".qq.com",
-                ".weibo.com",
-                ".bdstatic.com",
-                ".youdao.com",
-                ".yahoo.cn",
-                ".xunlei.com",
-                ".tudou.com",
-                ".people.com",
-                ".news.cn",
-                ".ludashi.com",
-                ".alipay.com",
-                ".ip138.com",
-                ".ips.com",
-                ".hao123.com",
-                ".google.cn",
-                ".google.hk",
-                ".facebook.com",
-                ".openresty.com",
-                ".wordpress.org",
-                "openresty.com",
-                ".swagger.io"
-            ]
-                .iter()
-                .any(|&blocked| domain.ends_with(blocked))
+            !pass_domain.iter().any(|blocked| domain.ends_with(blocked)) // 直接传 &String
         });
-
 
         match tofile::save_to_file(&filename, &domain_list, &ip_list) {
             Ok(_) => outprint::Print::bannerprint(format!("Results saved to {}",&filename).as_str()),
@@ -172,7 +153,7 @@ impl Displayinfo for InfoResults {
         domain_list.extend(ip_port_list.clone());
         outprint::Print::infoprint("Start checking web service cms");
         let filename = filename.to_string();
-        if let Err(_e) = cmsck::cmsmain(&filename,threads,client,domain_list,ip_list).await {
+        if let Err(_e) = cmsck::cmsmain(&filename,threads,client,domain_list,ip_list,otherset).await {
 
         }
     }
@@ -196,7 +177,9 @@ impl InfoResults {
 #[async_trait]
 impl InfoFetcher for InfoFofa{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let base64_str = base64::encode(format!("domain={}", domain));
+        // 修改编码代码
+        let base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
+        // let base64_str = base64::encode(format!("domain={}", domain));
         let url = format!("https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true", keys.fofa_key,base64_str);
         let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let response = client.get(&url).send().await?;
@@ -224,6 +207,34 @@ impl InfoFetcher for InfoFofa{
         outprint::Print::infoprint(format!("Fofa found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
+}
+#[async_trait]
+impl InfoFetcher for InfoAlienvault{
+    async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
+        let url = format!("https://otx.alienvault.com/api/v1/indicators/domain/{}/passive_dns", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Alienvault error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new())
+        }
+        let json_response = response.json::<Value>().await?;
+        let empty_vec = vec![];
+        let mut results = InfoResults::new();
+        let data_array = json_response.get("passive_dns").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
+
+        data_array.iter().for_each(|data| {
+            if let (Some(domain), Some(ip)) = (data.get("hostname"), data.get("address")) {
+                if let (Some(domain_str), Some(ip_str)) = (domain.as_str(), ip.as_str()) {
+                    results.domain_list.push(String::from(domain_str));
+                    results.ip_list.push(String::from(ip_str));
+                }
+            }
+        });
+        outprint::Print::infoprint(format!("Alienvault found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+
 }
 #[async_trait]
 impl InfoFetcher for InfoQuake{
@@ -309,7 +320,10 @@ impl InfoFetcher for InfoDaydaymap {
             "api-key",
             keys.daydaymap_key.parse()?
         );
-        let base64_str = base64::encode(format!("domain=\"{}\"", domain));
+
+        // 修改编码代码
+        let base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
+        // let base64_str = base64::encode(format!("domain=\"{}\"", domain));
         let query = json!({
             "page": 1,
             "page_size": 100,
@@ -420,8 +434,9 @@ impl InfoFetcher for InfoShodan {
 #[async_trait]
 impl InfoFetcher for InfoHunter {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let query = base64::encode(format!("domain=\"{domain}\""));
-        let url = format!("https://api.hunter.how/search?api-key={}&query={}&page=1&page_size=100&start_time=2024-01-01&end_time=2024-12-30",keys.hunter_key,query);
+        let query = STANDARD.encode(format!("domain=\"{}\"", domain));
+        // let query = base64::encode(format!("domain=\"{domain}\""));
+        let url = format!("https://api.hunter.how/search?api-key={}&query={}&page=1&page_size=100&start_time=2024-01-01&end_time=2025-12-30",keys.hunter_key,query);
         let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -445,8 +460,9 @@ impl InfoFetcher for InfoHunter {
 #[async_trait]
 impl InfoFetcher for InfoYT {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let query = base64::encode(format!("domain=\"{}\"",domain));
-        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2010-01-01&end_time=2025-12-28",keys.yt_key,query);
+        let query = STANDARD.encode(format!("domain=\"{}\"", domain));
+        // let query = base64::encode(format!("domain=\"{}\"",domain));
+        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",keys.yt_key,query);
         let client = Client::builder().timeout(Duration::from_secs(15)).default_headers({
                                                                                             let mut headers = HeaderMap::new();
                                                                                             headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
@@ -1055,12 +1071,12 @@ impl InfoFetcher for InfoC99NL {
     }
 }
 async fn build_client(arg: &HashMap<&str, String>) -> Result<Client, Box<dyn std::error::Error>> {
-    // 解析 timeout，默认值为 10 秒
+    // 解析 timeout，默认值为 30 秒
     let timeout = arg
         .get("timeout")
-        .unwrap_or(&"10".to_string())
+        .unwrap_or(&"20".to_string())
         .parse::<u64>()
-        .unwrap_or(10);
+        .unwrap_or(20);
 
     // 获取代理设置
     let default_proxy = "None".to_string();  // 提前创建并绑定到变量
@@ -1075,6 +1091,7 @@ async fn build_client(arg: &HashMap<&str, String>) -> Result<Client, Box<dyn std
 
     // 构建客户端构造器
     let mut client_builder = Client::builder()
+        .connect_timeout(Duration::from_secs(10))
         .timeout(Duration::from_secs(timeout)) // 设置超时
         .danger_accept_invalid_certs(!ssl_verify); // 根据 ssl_verify 来决定是否接受无效证书
 
@@ -1117,6 +1134,10 @@ fn parse_headers(input: &str, headers: &mut HeaderMap) {
 }
 
 pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path: Option<&str>) -> Result<(), Box<dyn Error>> {
+    let other_set_content = include_str!("../config/config.toml"); // 默认嵌入配置
+    let other_content: OtherSets = toml::from_str(other_set_content)?;
+
+
     // 加载默认配置
     let mut config = Config::from_default()?;
 
@@ -1127,6 +1148,7 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path:
     }
     // let config = Config::from_default()?;
     let api_keys = config.api_keys;
+
 
 
     let client = build_client(&arg).await?;
@@ -1156,6 +1178,7 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path:
         Arc::new(InfoDnshistory),
         Arc::new(InfoNetlas),
         Arc::new(InfoC99NL),
+        Arc::new(InfoAlienvault)
     ];
     let threads = arg.get("threads").and_then(|t| t.parse::<usize>().ok()).unwrap_or(300);
     outprint::Print::infoprint("Start enumerating subdomains");
@@ -1185,7 +1208,7 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path:
     join_all(tasks).await;
     let mut combined_results = combined_results.lock().await;
     if !combined_results.domain_list.is_empty() || !combined_results.ip_list.is_empty() {
-        combined_results.display(domain,threads,client,api_keys).await;
+        combined_results.display(domain,threads,client,api_keys,other_content).await;
     }
 
     Ok(())

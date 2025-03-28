@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use std::fs;
 use clap::{Arg, Command};
-use clap::builder::TypedValueParser;
+// use clap::builder::TypedValueParser;
 // use crate::infoscan::Config;
 
 mod outprint;
@@ -58,7 +58,7 @@ Author: akyo    Version: 0.0.3"#;
             Arg::new("ssl_verify")
                 .long("ssl-verify")
                 .value_name("BOOL")
-                .default_value("true")
+                .default_value("false")
                 .help("Enables or disables SSL verification (true/false)")
         )
         .arg(
@@ -73,7 +73,7 @@ Author: akyo    Version: 0.0.3"#;
                 .short('t')
                 .long("threads")
                 .help("Sets the Work Threads")
-                .default_value("300")
+                .default_value("100")
         )
         // .arg(
         //     Arg::new("update")

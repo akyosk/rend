@@ -1,31 +1,61 @@
-## api-key settings
-[api_keys]
-# https://fofa.info/api
-fofa_key = ""
-# https://www.shodan.io/
-shodan_key = ""
-# https://quake.360.net/quake
-quake_key = ""
-# https://www.zoomeye.org
-zoomeye_key = ""
-# https://www.daydaymap.com
-daydaymap_key = ""
-# https://securitytrails.com
-securitytrails_key = ""
-# https://hunter.how
-hunter_key = ""
-# https://hunter.qianxin.com
-yt_key = ""
-# https://www.virustotal.com
-virustotal_key = ""
-# https://viewdns.info
-viewdns_key = ""
-# https://app.binaryedge.io/services/query
-binaryedge_key = ""
-# https://fullhunt.io/
-fullhunt_key = ""
-# https://www.whoisxmlapi.com
-whoisxmlapi_key = ""
-# https://dnsdumpster.com
-dnsdump_key = ""
+# 定义url链接中的敏感关键词提取
+keywords = ["admin", "login", "system", "administrator", "config", "swagger","forum.php"]
+# 定义需要排除的文件扩展名
+excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"]
+excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]
 
+# 定义域名黑名单 爬取过程中忽略的名单
+pass_domain = [
+    ".google.com",
+    ".baidu.com",
+    ".cloudflare.com",
+    ".youtube.com",
+    ".cloudflare-dns.com",
+    ".cloudflaressl.com",
+    ".bing.com",
+    ".yahoo.com",
+    ".amazon.com",
+    ".aapanel.com",
+    ".qq.com",
+    ".weibo.com",
+    ".bdstatic.com",
+    ".youdao.com",
+    ".yahoo.cn",
+    ".xunlei.com",
+    ".tudou.com",
+    ".people.com",
+    ".news.cn",
+    ".ludashi.com",
+    ".alipay.com",
+    ".ip138.com",
+    ".ips.com",
+    ".hao123.com",
+    ".google.cn",
+    ".google.hk",
+    ".google.jp",
+    ".facebook.com",
+    "openresty.com",
+    ".swagger.io",
+    ".nginx.com",
+    "wordpress.org",
+    "cloudflare-dns.com",
+    "bootstrapcdn.com",
+    ".nosec.org",
+    ".alidns.com",
+    ".doubleclick.net",
+    ".thinkphp.com",
+    ".apache.com",
+    ".w3.org",
+    ".googletagmanager.com",
+    ".w.org",
+    ".googleapis.com",
+    ".googlesyndication.com",
+    ".gov.cn",
+    ".edu.cn",
+    ".360.cn",
+    ".microsoft.com",
+    ".mozilla.org",
+    ".centos.org",
+    ".discourse-cdn.com"
+
+]

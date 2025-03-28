@@ -1,8 +1,6 @@
 use std::error::Error;
-// use std::fmt::format;
 use std::sync::Arc;
-use futures::future::ok;
-// use std::time::Duration;
+use std::collections::HashSet;
 use reqwest::{Client, Response};
 use serde::Deserialize;
 use ring::digest::{Context, Digest, SHA256};
@@ -15,6 +13,7 @@ use crate::craw;
 use crate::vulns;
 use crate::tofile;
 use sha2::{Digest as Digest_sha2, Sha256 as Sha256_sha2};
+use crate::infoscan::{OtherSets};
 use crate::tofile::editor_urls_save_to_file;
 use crate::pocscan::pocsmain;
 #[allow(dead_code)]
@@ -238,7 +237,7 @@ impl Cmsck {
         }
         Ok(()) // 修复：将小写的 ok(()) 改为大写的 Ok(())
     }
-    async fn crawing(&self, domain: &str, fingerprints: &Finger,filename: &str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+    async fn crawing(&self, domain: &str, fingerprints: &Finger,filename: &str,other_sets: &OtherSets) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         let url = domain;
         let hash_url = format!("{}/favicon.ico", &url);
         let response = self.html_response(&url).await?;
@@ -267,50 +266,16 @@ impl Cmsck {
                 }
                 // outprint::Print::infoprint("Start your first crawl");
                 // 第一次爬取：获取初始 URL 列表
-                let initial_links = craw::crawmain(&final_url, response_text.as_str()).await?;
+                let initial_links = craw::crawmain(&final_url, response_text.as_str(),other_sets).await?;
                 let status_as_u64 = status.as_u16() as u64;
                 self.print_cms_response(&final_url, &response_text, &status_as_u64, domain, fingerprints, hash_string, headers,&filename).await?;
 
-                // 定义黑名单域名和去重集合
-                let excluded_domains = [
-                    ".google.com",
-                    ".baidu.com",
-                    ".cloudflare.com",
-                    ".youtube.com",
-                    ".cloudflare-dns.com",
-                    ".cloudflaressl.com",
-                    ".bing.com",
-                    ".yahoo.com",
-                    ".amazon.com",
-                    ".aapanel.com",
-                    ".qq.com",
-                    ".weibo.com",
-                    ".bdstatic.com",
-                    ".youdao.com",
-                    ".yahoo.cn",
-                    ".xunlei.com",
-                    ".tudou.com",
-                    ".people.com",
-                    ".news.cn",
-                    ".ludashi.com",
-                    ".alipay.com",
-                    ".ip138.com",
-                    ".ips.com",
-                    ".hao123.com",
-                    ".google.cn",
-                    ".google.hk",
-                    ".facebook.com",
-                    ".openresty.com",
-                    ".wordpress.org",
-                    "openresty.com",
-                    ".swagger.io"
-                ];
                 let mut unique_urls = std::collections::HashSet::new();
                 let mut rescraw_list = Vec::new();
 
                 // 处理第一次爬取的链接（去重 + 过滤）
                 for url in initial_links {
-                    if excluded_domains.iter().any(|domain| url.contains(domain)) {
+                    if other_sets.pass_domain.iter().any(|domain| url.contains(domain)) {
                         continue; // 跳过黑名单域名
                     }
                     if unique_urls.insert(url.clone()) {
@@ -329,11 +294,11 @@ impl Cmsck {
                         }
                     };
                     let new_response_text = new_response.text().await?;
-                    let sub_links = craw::crawmain(url, new_response_text.as_str()).await?;
+                    let sub_links = craw::crawmain(url, new_response_text.as_str(),other_sets).await?;
 
                     // 处理子链接（去重 + 过滤）
                     for link in sub_links {
-                        if excluded_domains.iter().any(|domain| link.contains(domain)) {
+                        if other_sets.pass_domain.iter().any(|domain| link.contains(domain)) {
                             continue; // 跳过黑名单域名
                         }
                         if unique_urls.insert(link.clone()) {
@@ -426,7 +391,7 @@ impl Cmsck {
 }
 
 
-pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<String>,mut ip_list:Vec<String>) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<String>,mut ip_list:Vec<String>,otherset:OtherSets) -> Result<(), Box<dyn Error + Send + Sync>> {
     let file_content = include_str!("../config/finger.json");
     let fingerprints: Finger = match serde_json::from_str(&file_content) {
         Ok(fingerprints) => fingerprints,
@@ -438,7 +403,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     let fingerprints = Arc::new(fingerprints);
     let c = client.clone();
     let client = Arc::new(client);
-
+    let otherset = Arc::new(otherset);
     let not_found = Arc::new(NotFound::new());
     let ok_list = Arc::new(Mutex::new(Vec::new()));
     let bypass_list = Arc::new(Bypass::new());
@@ -465,6 +430,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     let mut tasks = vec![];
     let _ = tofile::other_save_to_file(&filename,"\n[URLS CMS INFO]");
     for domain in req_domains.clone() {
+        let otherset_clone = Arc::clone(&otherset);
         let filename = Arc::new(filename_clone.to_string());
         let fingerprints = Arc::clone(&fingerprints);
         let crawer = crawer.clone();
@@ -474,7 +440,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
 
         let task = tokio::spawn(async move {
             let _permit = semaphore.acquire().await;
-            if let Ok(results) = crawer.crawing(&domain, &fingerprints,&filename).await {
+            if let Ok(results) = crawer.crawing(&domain, &fingerprints,&filename,&otherset_clone).await {
                 let mut rescraw = rescraw.lock().await;
                 rescraw.push(results);
             }
@@ -485,14 +451,36 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     for task in tasks {
         task.await?;
     }
+
+
+    let ok_list_urls = ok_list.lock().await.clone();
+    let not_found_urls = not_found.take_all().await;
+    let bypass_urls = bypass_list.take_all().await;
     // 调用yaml-poc
     outprint::Print::infoprint("Start loading yaml pocs file");
     // 调用 pocsmain 执行并发验证
-    pocsmain(req_domains, c.clone()).await?;
+
+    fn merge_and_deduplicate(vec1: Vec<String>, vec2: Vec<String>, vec3: Vec<String>) -> Vec<String> {
+        let mut seen = HashSet::new();
+        let mut result = Vec::new();
+
+        // 按顺序遍历所有元素，保留首次出现的元素
+        for s in vec1.into_iter().chain(vec2).chain(vec3) {
+            if seen.insert(s.clone()) { // HashSet.insert() 返回是否是新插入
+                result.push(s);
+            }
+        }
+
+        result
+    }
+    let _ = tofile::other_save_to_file(&filename,"\n[VULNS INFO]");
+    let pocs_req_domains = merge_and_deduplicate(ok_list_urls.clone(), not_found_urls.clone(), bypass_urls.clone());
+    pocsmain(pocs_req_domains, c.clone(),filename).await?;
+
 
     outprint::Print::infoprint("Yaml pocs execution ends");
 
-    let ok_list_urls = ok_list.lock().await.clone();
+    // let ok_list_urls = ok_list.lock().await.clone();
 
     if !ok_list_urls.is_empty() {
         outprint::Print::infoprint("Start enumerating editor paths");
@@ -541,7 +529,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         }
         outprint::Print::infoprint("End of enumerating editor paths");
     }
-    let not_found_urls = not_found.take_all().await;
+    // let not_found_urls = not_found.take_all().await;
 
     if !not_found_urls.is_empty() {
         outprint::Print::infoprint("Start enumerating 404 response paths");
@@ -573,7 +561,7 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         outprint::Print::infoprint("End of enumeration 404 response path");
     }
 
-    let bypass_urls = bypass_list.take_all().await;
+    // let bypass_urls = bypass_list.take_all().await;
 
     if !bypass_urls.is_empty() {
         outprint::Print::infoprint("Start Bypass 403 response urls");

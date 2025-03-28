@@ -32,6 +32,16 @@ pub fn vuln_save_to_file(file_name: &str, domains: &[String]) -> io::Result<()> 
 
     Ok(())
 }
+pub fn yaml_vuln_save_to_file(file_name: &str, name:&str,domains: &str) -> io::Result<()> {
+    // 打开文件（如果文件不存在则创建，存在则追加内容）
+    let mut file = OpenOptions::new()
+        .create(true) // 如果文件不存在则创建
+        .append(true) // 如果文件存在则追加内容
+        .open(file_name)?;
+    writeln!(file, "[*] | {} | {}", name,domains)?;
+
+    Ok(())
+}
 pub fn ip_urls_save_to_file(file_name: &str, domains: &[String]) -> io::Result<()> {
     // 打开文件（如果文件不存在则创建，存在则追加内容）
     let mut file = OpenOptions::new()
@@ -86,7 +96,7 @@ pub fn req_urls_save_to_file(file_name: &str,domain: &str, status: &u64, lens: &
         .create(true) // 如果文件不存在则创建
         .append(true) // 如果文件存在则追加内容
         .open(file_name)?;
-    if ip.is_some() {
+    if ip.is_none() {
         writeln!(file, "{}", format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ]", domain, status, lens, title))?;
     } else {
         writeln!(file, "{}", format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ] | [IP -> {}]", domain, status, lens, title,ip.unwrap_or("N/A")))?;
