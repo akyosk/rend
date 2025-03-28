@@ -28,7 +28,7 @@ Author: akyo    Version: 0.0.3"#;
     outprint::Print::bannerprint(banner);
 
     let args = Command::new("rend")
-        .version("0.0.1")
+        .version("0.0.3")
         .author("akyo")
         .about("Subdomain scan and vulns check")
         .arg(
