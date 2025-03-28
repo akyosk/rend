@@ -59,4 +59,5 @@ pass_domain = [
     ".discourse-cdn.com",
     ".taobao.com",
     ".jd.com",
+    ".github.com",
 ]
