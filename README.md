@@ -76,7 +76,7 @@ git clone https://github.com/akyosk/rend.git
 
 ## ⚙️ 编译前配置
 
-**config.toml位于config目录下**
+**api.toml位于config目录下**
 ![image-20241204141247015.png](img/image-20241204141247015.png)
 
 ## 🎉 编译
