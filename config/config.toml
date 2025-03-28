@@ -56,7 +56,7 @@ pass_domain = [
     ".microsoft.com",
     ".mozilla.org",
     ".centos.org",
-    ".discourse-cdn.com"
+    ".discourse-cdn.com",
     ".taobao.com",
     ".jd.com",
 ]
