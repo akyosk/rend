@@ -80,7 +80,7 @@ impl LinkScan {
         let mut qc_res = vec![];
         for (name, regex) in regex_list {
             for matched in regex.find_iter(&html) {
-                if qc_res.contains(&matched.as_str()) {
+                if qc_res.contains(&matched.as_str()) && !url.contains(".css") {
                     // 将格式化后的字符串直接推入 Vec<String>
                     let key_entry = format!("Found KEY in {} {}: {}", url, name, matched.as_str());
                     keys_res.push(key_entry.clone()); // 存入 keys_res

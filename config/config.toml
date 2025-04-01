@@ -1,6 +1,6 @@
-# 定义url链接中的敏感关键词提取
+# 定义url链接中的敏感关键词提取，当包含如下关键词会输出
 keywords = ["admin", "login", "system", "administrator", "config", "swagger","forum.php"]
-# 定义需要排除的文件扩展名
+# 定义需要排除的爬取路径文件扩展名
 excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"]
 excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]
 
@@ -56,6 +56,8 @@ pass_domain = [
     ".microsoft.com",
     ".mozilla.org",
     ".centos.org",
-    ".discourse-cdn.com"
-
+    ".discourse-cdn.com",
+    ".taobao.com",
+    ".jd.com",
+    ".github.com",
 ]

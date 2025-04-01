@@ -27,61 +27,67 @@
 - **内置finger指纹库进行指纹识别**
 - **各类厂商Key值检测**
 - **自动Fuzz404**
+- **根据查询域名的所有IP结果Bypass403**
+- **子域名枚举**
+- **根据域名结果反查IP**
 - **内置简单漏洞检测机制，遇到带参链接自动替换，进行以下检测**
   - **SQL**
   - **RCE**
   - **SSRF**
   - **FILE READ**
+- **增加yaml漏洞模版,调用是对404/200/403响应结果进行漏洞验证**
 - **对IP结果进行简单cdn判断并执行端口收集，将结果传入指纹漏洞识别**
 - **各类结果进行文件保存**
 
 **支持引擎如下:**
 
-| 序号 |    搜索引擎    |                     网站                      | 是否支持 | 是否需要API |
-|:--:| :------------: |:-------------------------------------------:|:----:| :---------: |
-| 1  |   daydaymap    |           https://dnsdumpster.com           |  ✅   |      ✅      |
-| 2  |   hunter.how   |             https://hunter.how              |  ✅   |      ✅      |
-| 3  |    Chaziyu     |            https://chaziyu.com/             |  ✅   |      ❌      |
-| 4  |     crt.sh     |               https://crt.sh/               |  ✅   |      ❌      |
-| 5  |  whoisxmlapi   |         https://www.whoisxmlapi.com         |  ✅   |      ✅      |
-| 6  |   binaryedge   |  https://app.binaryedge.io/services/query   |  ✅   |      ✅      |
-| 7  |     quake      |           https://www.zoomeye.org           |  ✅   |      ✅      |
-| 8  |      鹰图      |         https://hunter.qianxin.com          |  ✅   |      ✅      |
-| 9  |    zoomeye     |           https://www.zoomeye.org           |  ✅   |      ✅      |
-| 10 |    Rapiddns    |            https://rapiddns.io/             |  ✅   |      ❌      |
-| 11 |  Sitedossier   |         http://www.sitedossier.com/         |  ✅   |      ❌      |
-| 12 |    jldc.me     |     https://jldc.me/anubis/subdomains/      |  ✅   |      ❌      |
-| 13 |    ViewDNS     |  https://app.binaryedge.io/services/query   |  ✅   |      ✅      |
-| 14 |     C99NL      |    https://subdomainfinder.c99.nl/scans     |  ✅   |      ❌      |
-| 15 |   Alienvault   |         https://otx.alienvault.com/         |  ✅   |      ❌      |
-| 16 |   Dnshistory   |    https://dnshistory.org/subdomains/1/     |  ✅   |      ❌      |
-| 17 |  Hackertarget  | https://api.hackertarget.com/hostsearch/?q= |  ✅   |      ❌      |
-| 18 |  Certspotter   |        https://api.certspotter.com/         |  ✅   |      ❌      |
-| 19 |    Fullhunt    |            https://fullhunt.io/             |  ✅   |      ✅      |
-| 20 |      fofa      |            https://fofa.info/api            |  ✅   |      ✅      |
-| 21 |  dnsdumpster   |         https://api.dnsdumpster.com         |  ✅   |      ✅      |
-| 22 |   virustotal   |         https://www.virustotal.com          |  ✅   |      ✅      |
-| 23 |     shodan     |           https://www.shodan.io/            |  ✅   |      ✅      |
-| 24 |     Netlas     |            https://app.netlas.io            |  ✅   |      ❌      |
-| 25 | Securitytrails |         https://securitytrails.com          |  ✅   |      ✅      |
-| 26 |     censys     |          https://search.censys.io           |  ❌   |      ✅      |
+| 序号 |      搜索引擎      |                          网站                           | 是否支持 | 是否需要API |
+|:--:|:--------------:|:-----------------------------------------------------:|:----:| :---------: |
+| 1  |   daydaymap    |                https://dnsdumpster.com                |  ✅   |      ✅      |
+| 2  |   hunter.how   |                  https://hunter.how                   |  ✅   |      ✅      |
+| 3  |    Chaziyu     |                 https://chaziyu.com/                  |  ✅   |      ❌      |
+| 4  |     crt.sh     |                    https://crt.sh/                    |  ✅   |      ❌      |
+| 5  |  whoisxmlapi   |              https://www.whoisxmlapi.com              |  ✅   |      ✅      |
+| 6  |   binaryedge   |       https://app.binaryedge.io/services/query        |  ✅   |      ✅      |
+| 7  |     quake      |                https://www.zoomeye.org                |  ✅   |      ✅      |
+| 8  |       鹰图       |              https://hunter.qianxin.com               |  ✅   |      ✅      |
+| 9  |    zoomeye     |                https://www.zoomeye.org                |  ✅   |      ✅      |
+| 10 |    Rapiddns    |                 https://rapiddns.io/                  |  ✅   |      ❌      |
+| 11 |  Sitedossier   |              http://www.sitedossier.com/              |  ✅   |      ❌      |
+| 12 |    jldc.me     |          https://jldc.me/anubis/subdomains/           |  ✅   |      ❌      |
+| 13 |    ViewDNS     |               https://api.viewdns.info                |  ✅   |      ✅      |
+| 14 |     C99NL      |         https://subdomainfinder.c99.nl/scans          |  ✅   |      ❌      |
+| 15 |   Alienvault   |              https://otx.alienvault.com/              |  ✅   |      ❌      |
+| 16 |   Dnshistory   |         https://dnshistory.org/subdomains/1/          |  ✅   |      ❌      |
+| 17 |  Hackertarget  | https://api.hackertarget.com/hostsearch/?q=           |  ✅   |      ❌      |
+| 18 |  Certspotter   |             https://api.certspotter.com/              |  ✅   |      ❌      |
+| 19 |    Fullhunt    |                 https://fullhunt.io/                  |  ✅   |      ✅      |
+| 20 |      fofa      |                 https://fofa.info/api                 |  ✅   |      ✅      |
+| 21 |  dnsdumpster   |              https://api.dnsdumpster.com              |  ✅   |      ✅      |
+| 22 |   virustotal   |              https://www.virustotal.com               |  ✅   |      ✅      |
+| 23 |     shodan     |                https://www.shodan.io/                 |  ✅   |      ✅      |
+| 24 |     Netlas     |                 https://app.netlas.io                 |  ✅   |      ❌      |
+| 25 | Securitytrails |              https://securitytrails.com               |  ✅   |      ✅      |
+| 26 |    archive     |                https://web.archive.org                |    ✅   |       ❌      |
+| 27 |     censys     |               https://search.censys.io                |  ❌   |      ✅      |
 
 
 
 ## 💻 安装
 
-~~~shell
+~~~text
 git clone https://github.com/akyosk/rend.git
 ~~~
 
 ## ⚙️ 编译前配置
 
-**config.toml位于config目录下**
+**api.toml位于config目录下**
 ![image-20241204141247015.png](img/image-20241204141247015.png)
 
 ## 🎉 编译
 
-~~~shell
+**注：本项目为rust项目,需提前安装rust环境**
+~~~text
 cd rend && cargo build --release
 ~~~
 
@@ -89,13 +95,20 @@ cd rend && cargo build --release
 
 ## ⚡️ 使用
 
-~~~shell
+~~~text
 ./rend -h或--help
 ~~~
 
 ![image-20241204140411914](img/image-20241204140411914.png)
+~~~text
+# 域名扫描
+./rend -d domain.com
+# 编译后也可指定其他api.toml文件执行,指定的toml优先级最高
+./rend -d domain.com --rend-config otherApi.toml
+~~~
 
-## 🌍 作者杂谈
+
+## 🌍 作者闲谈
 
 **第一次学习Rust，并使用Rust写下了这个工具，很多东西还不是很清楚，后续慢慢改进，不喜轻喷**😝
 
