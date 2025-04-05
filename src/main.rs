@@ -24,11 +24,11 @@ _______   ____    ____    __| _/
  |  | \/\  ___/ |   |  \/ /_/ |
  |__|    \___  >|___|  /\____ |
              \/      \/      \/
-Author: akyo    Version: 0.0.3"#;
+Author: akyo    Version: 0.0.4"#;
     outprint::Print::bannerprint(banner);
 
     let args = Command::new("rend")
-        .version("0.0.3")
+        .version("0.0.4")
         .author("akyo")
         .about("Subdomain scan and vulns check")
         .arg(

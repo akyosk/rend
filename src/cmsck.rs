@@ -334,8 +334,11 @@ impl Cmsck {
             if status.as_u16() == 403 {
                 self.bypass_list.push(url.to_string()).await;
             }
-            let status_as_u64 = status.as_u16() as u64;
-            self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str(),&filename,None).await?;
+            if html_text.len() != 0{
+                let status_as_u64 = status.as_u16() as u64;
+                self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str(),&filename,None).await?;
+            }
+
         }
         Ok(())
 

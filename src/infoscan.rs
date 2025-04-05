@@ -62,6 +62,8 @@ pub struct ApiKeys {
     fullhunt_key: String,
     whoisxmlapi_key: String,
     dnsdump_key: String,
+    bevigil_key:String,
+    robtex_key:String
 }
 impl Config {
     pub fn from_default() -> Result<Self, Box<dyn Error>> {
@@ -103,6 +105,14 @@ struct InfoDnshistory;
 struct InfoNetlas;
 struct InfoC99NL;
 struct InfoAlienvault;
+struct InfoDnsarchive;
+struct InfoIP138;
+struct InfoThreatcrowd;
+struct InfoUrlscan;
+struct InfoBevigil;
+struct InfoDnsgrep;
+struct InfoMyssl;
+struct InfoRobtex;
 struct InfoResults{
     domain_list: Vec<String>,
     ip_list: Vec<String>,
@@ -174,6 +184,333 @@ impl InfoResults {
         self.ip_list.extend(other.ip_list);
     }
 }
+
+#[async_trait]
+impl InfoFetcher for InfoRobtex {
+    async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://freeapi.robtex.com/pdns/forward/{}?key={}", domain,keys.robtex_key);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Robtex error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let response_text = response.text().await?;
+        // 存储解析后的数据
+        let data: Vec<Value> = Vec::new();
+
+        let domain_regex = Regex::new(r"^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")?;
+        let ip_regex = Regex::new(r"^\d{1,3}(\.\d{1,3}){3}$")?;
+
+        let mut results = InfoResults::new();
+        let lines = response_text.lines();
+
+        for line in lines {
+            match serde_json::from_str::<Value>(line) {
+                Ok(json_value) => {
+                    if let Some(rrdata) = json_value["rrdata"].as_str() {
+                        if domain_regex.is_match(rrdata) {
+                            results.domain_list.push(rrdata.to_string());
+                        } else if ip_regex.is_match(rrdata) {
+                            results.ip_list.push(rrdata.to_string());
+                        }
+                    }
+                }
+                Err(_) => {
+                    // 如果某行不是有效的 JSON 数据，跳过
+                    continue;
+                }
+            }
+        }
+
+        // 打印所有包含 "rrdata" 字段的值
+        for item in data {
+            if let Some(rrdata) = item["rrdata"].as_str() {
+                results.domain_list.push(rrdata.to_string());
+                // println!("{}", rrdata);
+            }
+        }
+        outprint::Print::infoprint(format!("Robtex found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+}
+#[async_trait]
+impl InfoFetcher for InfoMyssl {
+    async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://myssl.com/api/v1/discover_sub_domain?domain={}", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Myssl error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let mut results = InfoResults::new();
+        let body = response.text().await?;
+        let json: Value = serde_json::from_str(&body)?;
+
+        // 解析 "data" 数组中的 IP 和域名
+        if let Some(data_array) = json["data"].as_array() {
+            for item in data_array {
+                if let (Some(ip), Some(domain)) = (item["ip"].as_str(), item["domain"].as_str()) {
+                    results.ip_list.push(ip.to_string());
+                    results.domain_list.push(domain.to_string());
+                    // println!("IP: {}", ip);
+                    // println!("Domain: {}", domain);
+                }
+            }
+        };
+        outprint::Print::infoprint(format!("Myssl found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+}
+#[async_trait]
+impl InfoFetcher for InfoDnsgrep {
+    async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://www.dnsgrep.cn/subdomain/{}", domain);
+        let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Cookie",
+            "cf_clearance=2sTanrJw2CDVxo4JYDRfn65B7fjTrJ9gF3g.Rg7U5Bc-1743688955-1.2.1.1-EZ02SHu1TtvdoOOjLgLaMRtAYbmWTWwiFayG_3l9t2xAxHNuAjPnnq_.pq_RXF_95xo3Cc7ZpWrNC.e9U3NQiSSV9NwWxXArVR7sRbB761qbQTnpGloofKSgHRpQO9nuaJYsYZVCWra8UX5Udsn8ITx.n.eZx9k5.USI05TKEtXYykqYdneDcHP5zIHjeQRZvhQKxF2gtWbbhW1OUDHOCpS9VyIaOKVZFaoJim232WNfbUixI...A792lhQmZi1jKp0RhHKmH._9DlAfQzEcq1h_rDp7.4RH2sINLOklzYDkx2r1nEHyIzPBj_QCZENtPSmHIBBWt31s3yMiW0Fg5zx70LR4veyn4PUi7J.dqTfg8D1mzSwqbnfo_UFnVPTi".parse()?,
+        );
+        headers.insert(
+            "User-Agent",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15".parse()?
+        );
+        let response = client.get(url).headers(headers).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Dnsgrep error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let mut results = InfoResults::new();
+        // 解析 HTML
+        let document = Html::parse_document(&response.text().await?);
+        let td_selector = Selector::parse("td[data]").unwrap();
+
+        // 正则匹配
+        let domain_regex = Regex::new(r"^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")?;
+        let ip_regex = Regex::new(r"^\d{1,3}(\.\d{1,3}){3}$")?;
+
+        // let mut domains = Vec::new();
+        // let mut ips = Vec::new();
+
+        // 查找匹配的 <td data=*>
+        for element in document.select(&td_selector) {
+            if let Some(data_value) = element.value().attr("data") {
+                let data_value = data_value.trim();
+
+                if ip_regex.is_match(data_value) {
+                    results.ip_list.push(data_value.to_string());
+                    // ips.push(data_value.to_string());
+                } else if domain_regex.is_match(data_value) {
+                    results.domain_list.push(data_value.to_string());
+                    // domains.push(data_value.to_string());
+                }
+            }
+        }
+
+        // 输出结果
+        // for domain in &domains {
+        //     results.domain_list.push(domain.to_string());
+        //     // println!("{}", domain);
+        // }
+        //
+        // for ip in &ips {
+        //     results.ip_list.push(ip.to_string());
+        //     // println!("{}", ip);
+        // }
+        outprint::Print::infoprint(format!("Dnsgrep found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+}
+#[async_trait]
+impl InfoFetcher for InfoBevigil {
+    async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("http://osint.bevigil.com/api/{}/subdomains/", domain);
+        let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "X-Access-Token",
+            keys.bevigil_key.parse()?,
+        );
+        let response = client.get(url).headers(headers).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Bevigil error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let mut results = InfoResults::new();
+        // 解析 JSON 响应
+        let body = response.text().await?;
+        let json: Value = serde_json::from_str(&body)?;
+
+        // 遍历 subdomains 并打印
+        if let Some(subdomains) = json["subdomains"].as_array() {
+            for sub in subdomains {
+                if let Some(subdomain) = sub.as_str() {
+                    results.domain_list.push(subdomain.to_string());
+                }
+            }
+        }
+        outprint::Print::infoprint(format!("Bevigil found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+}
+#[async_trait]
+impl InfoFetcher for InfoUrlscan {
+    async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://urlscan.io/api/v1/search/?q=domain:{}", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Urlscan error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let mut res_results = InfoResults::new();
+        // 解析 JSON 响应
+        let body = response.text().await?;
+        let json: Value = serde_json::from_str(&body)?;
+
+        // 确保 "results" 存在并且是数组
+        if let Some(results) = json["results"].as_array() {
+            for js in results {
+                if let Some(task) = js.get("task") {
+                    if let Some(domain) = task.get("domain").and_then(|d| d.as_str()) {
+                        res_results.domain_list.push(domain.to_string());
+                        // println!("{}", domain);
+                    }
+                    if let Some(ip) = js.get("page").and_then(|p| p.get("ip")).and_then(|ip| ip.as_str()) {
+                        res_results.ip_list.push(ip.to_string());
+                        // println!("{}", ip);
+                    }
+                } else if let Some(submitter) = js.get("submitter") {
+                    if let Some(submit_task) = submitter.get("task") {
+                        if let Some(domain) = submit_task.get("domain").and_then(|d| d.as_str()) {
+                            res_results.domain_list.push(domain.to_string());
+                            // println!("{}", domain);
+                        }
+                    }
+                    if let Some(ip) = submitter.get("page").and_then(|p| p.get("ip")).and_then(|ip| ip.as_str()) {
+                        res_results.ip_list.push(ip.to_string());
+                    }
+                }
+            }
+        }
+        outprint::Print::infoprint(format!("Urlscan found Domain {} | found IP {}",res_results.domain_list.len(), res_results.ip_list.len()).as_str());
+        Ok(res_results)
+    }
+}
+#[async_trait]
+impl InfoFetcher for InfoThreatcrowd {
+    async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("http://ci-www.threatcrowd.org/searchApi/v2/domain/report/?domain={}", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Threatcrowd error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+        let mut results = InfoResults::new();
+        let body = response.text().await?;
+        let json: Value = serde_json::from_str(&body)?;
+
+        // 提取 IP 地址
+        if let Some(resolutions) = json["resolutions"].as_array() {
+            for res in resolutions {
+                if let Some(ip) = res["ip_address"].as_str() {
+                    results.ip_list.push(ip.to_string());
+                }
+            }
+        }
+
+        // 提取子域名
+        if let Some(subdomains) = json["subdomains"].as_array() {
+            for sub in subdomains {
+                if let Some(subdomain) = sub.as_str() {
+                    results.domain_list.push(subdomain.to_string());
+                }
+            }
+        }
+        outprint::Print::infoprint(format!("Threatcrowd found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+
+}
+#[async_trait]
+impl InfoFetcher for InfoDnsarchive{
+    async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://dnsarchive.net/search.php?q={}", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Dnsarchive error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
+
+        let mut results = InfoResults::new();
+        let body = response.text().await?; // 修复：必须 `await`
+
+        let document = Html::parse_document(&body);
+        let domain_selector = Selector::parse("td[data-label='Domain'] a").unwrap();
+        let ipv4_selector = Selector::parse("td[data-label='IPv4'] a").unwrap();
+
+        for element in document.select(&domain_selector) {
+            if let Some(href) = element.value().attr("href") {
+                if let Some(domain) = href.split('/').last() {
+                    let res_domain = domain.trim_matches('.');
+                    results.domain_list.push(String::from(res_domain));
+                }
+            }
+        }
+
+        for element in document.select(&ipv4_selector) {
+            if let Some(ip) = element.text().next() {
+                let res_ip = ip.trim();
+                results.ip_list.push(String::from(res_ip));
+            }
+        }
+
+        outprint::Print::infoprint(format!("Dnsarchive found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+
+}
+
+#[async_trait]
+impl InfoFetcher for InfoIP138 {
+    async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = format!("https://chaziyu.com/{}/", domain);
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let response = client.get(&url).send().await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("IP138 error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new())
+        }
+        let mut results = InfoResults::new();
+        let body = response.text().await?;
+        let document = Html::parse_document(&body);
+
+        // 选择 <tr class="J_link">
+        let row_selector = Selector::parse("tr.J_link").unwrap();
+        let td_selector = Selector::parse("td").unwrap();
+
+        // 遍历符合条件的 <tr>
+        for row in document.select(&row_selector) {
+            let tds: Vec<_> = row.select(&td_selector).collect();
+            if tds.len() > 1 {
+                let domain = tds[1].text().collect::<Vec<_>>().join("").trim().to_string();
+                results.domain_list.push(domain);
+            }
+        }
+        outprint::Print::infoprint(format!("IP138 found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+
+}
 #[async_trait]
 impl InfoFetcher for InfoFofa{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
@@ -222,12 +559,15 @@ impl InfoFetcher for InfoAlienvault{
         let empty_vec = vec![];
         let mut results = InfoResults::new();
         let data_array = json_response.get("passive_dns").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
-
+        let ip_regex = Regex::new(r"^\d{1,3}(\.\d{1,3}){3}$")?;
         data_array.iter().for_each(|data| {
             if let (Some(domain), Some(ip)) = (data.get("hostname"), data.get("address")) {
                 if let (Some(domain_str), Some(ip_str)) = (domain.as_str(), ip.as_str()) {
                     results.domain_list.push(String::from(domain_str));
-                    results.ip_list.push(String::from(ip_str));
+                    if ip_regex.is_match(ip_str){
+                        results.ip_list.push(String::from(ip_str));
+                    }
+
                 }
             }
         });
@@ -490,7 +830,7 @@ impl InfoFetcher for InfoYT {
 #[async_trait]
 impl InfoFetcher for InfoVirustotal {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let domain_url = format!("https://www.virustotal.com/api/v3/domains/{}/relationships/subdomains?limit=100",domain);
+        let domain_url = format!("https://www.virustotal.com/api/v3/domains/{}/relationships/subdomains?limit=40",domain);
         let mut headers = HeaderMap::new();
         headers.insert(
             "accept","application/json".parse()?,
@@ -832,7 +1172,7 @@ impl InfoFetcher for InfoSitedossier {
 #[async_trait]
 impl InfoFetcher for InfoRapiddns{
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let url = format!("https://rapiddns.io/s/{}#result",domain);
+        let url = format!("http://rapiddns.io/subdomain/{}?full=1",domain);
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
@@ -1178,7 +1518,15 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path:
         Arc::new(InfoDnshistory),
         Arc::new(InfoNetlas),
         Arc::new(InfoC99NL),
-        Arc::new(InfoAlienvault)
+        Arc::new(InfoAlienvault),
+        Arc::new(InfoDnsarchive),
+        Arc::new(InfoIP138),
+        Arc::new(InfoThreatcrowd),
+        Arc::new(InfoUrlscan),
+        Arc::new(InfoBevigil),
+        Arc::new(InfoDnsgrep),
+        Arc::new(InfoMyssl),
+        Arc::new(InfoRobtex)
     ];
     let threads = arg.get("threads").and_then(|t| t.parse::<usize>().ok()).unwrap_or(300);
     outprint::Print::infoprint("Start enumerating subdomains");

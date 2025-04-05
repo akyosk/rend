@@ -9706,6 +9706,18 @@
     "location":"body",
     "logic": "or",
     "rule": ["ShopXO电商系统","http://shopxo.net/"]
+  }, {
+    "cms": "Jeesite CMS",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["http://jeesite.com"]
+  }, {
+    "cms": "Pear Admin Boot",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["明 湖 区 最 具 影 响 力 的 设 计 规 范 之 一","pear/css/pear.css","Pear Admin"]
   }
   ]
 }

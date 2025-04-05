@@ -28,3 +28,7 @@ fullhunt_key = ""
 whoisxmlapi_key = ""
 # https://dnsdumpster.com
 dnsdump_key = ""
+# http://osint.bevigil.com/
+bevigil_key = ""
+# https://freeapi.robtex.com/
+robtex_key = ""
