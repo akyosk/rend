@@ -533,7 +533,7 @@ pocs:
       - 'username'
       - 'password'
       - 'totalCount'
-    matchers-condition: or
+    matchers-condition: and
     name: "Nacos CVE-2021-29441 Vuln"
   - metch: "get"
     path: '/v1/cs/configs?export=true&group=&tenant=&appName=&ids=&dataId='
