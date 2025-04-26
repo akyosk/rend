@@ -426,7 +426,8 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
 
         };
     }
-
+    let req_domains_set: HashSet<String> = req_domains.into_iter().collect();
+    let req_domains: Vec<String> = req_domains_set.into_iter().collect();
     let semaphore = Arc::new(Semaphore::new(threads)); // 并发限制
     let rescraw = Arc::new(Mutex::new(Rescraw::new()));
     let filename_clone = Arc::new(filename.to_string());

@@ -77,7 +77,7 @@
 | 32 |                        bevigil                         |                                                                                                    http://osint.bevigil.com                                                                                                     |      ✅   |          ✅          |
 | 33 |                        dnsgrep                         |                                                                                                     https://www.dnsgrep.cn/                                                                                                     |      ✅    |          ❌          |
 | 34 |                         myssl                          |                                                                                                       https://myssl.com/                                                                                                        |      ✅     |    ❌                |
-| 35 |                    freeapi                             |                       https://freeapi.robtex.com                                                                                                                                                                                |       ✅     |           ✅          |
+| 35 |                    robtex                             |                       https://freeapi.robtex.com                                                                                                                                                                                |       ✅     |           ✅          |
 
 
 

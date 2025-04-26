@@ -24,11 +24,11 @@ _______   ____    ____    __| _/
  |  | \/\  ___/ |   |  \/ /_/ |
  |__|    \___  >|___|  /\____ |
              \/      \/      \/
-Author: akyo    Version: 0.0.4"#;
+Author: akyo    Version: 0.0.5"#;
     outprint::Print::bannerprint(banner);
 
     let args = Command::new("rend")
-        .version("0.0.4")
+        .version("0.0.5")
         .author("akyo")
         .about("Subdomain scan and vulns check")
         .arg(
@@ -107,7 +107,20 @@ Author: akyo    Version: 0.0.4"#;
 
     // 解析其他参数
     let domain = args.get_one::<String>("domain").unwrap();
-    outprint::Print::infoprint(format!("Domain: {}", domain).as_str());
+    outprint::Print::infoprint(format!("Load Domain: {}", domain).as_str());
+    let treads = args.get_one::<String>("threads").unwrap();
+    outprint::Print::infoprint(format!("Load Threads: {}", treads).as_str());
+    let headers = args.get_one::<String>("headers").unwrap();
+    outprint::Print::infoprint(format!("Load Header: {}", headers).as_str());
+    let proxy = args.get_one::<String>("proxy").unwrap();
+    if !proxy.is_empty() {
+        outprint::Print::infoprint(format!("Load Proxy: {}", proxy).as_str());
+    } else { outprint::Print::infoprint("Load Proxy: None");  }
+
+    let timeout = args.get_one::<String>("timeout").unwrap();
+    outprint::Print::infoprint(format!("Load Timeout: {}", timeout).as_str());
+    let ssl = args.get_one::<String>("ssl_verify").unwrap();
+    outprint::Print::infoprint(format!("Load SSL: {}", ssl).as_str());
 
     let mut arg = HashMap::new();
     arg.insert("domain", domain.clone());

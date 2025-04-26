@@ -9718,6 +9718,24 @@
     "location":"body",
     "logic": "or",
     "rule": ["明 湖 区 最 具 影 响 力 的 设 计 规 范 之 一","pear/css/pear.css","Pear Admin"]
+  }, {
+    "cms": "GT CMS",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["GT CMS Pro Manager"]
+  }, {
+    "cms": "Observium",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["observium.css","observium-icon.png"]
+  }, {
+    "cms": "来客PHP",
+    "method": "keyword",
+    "location":"body",
+    "logic": "or",
+    "rule": ["来客PHP"]
   }
   ]
 }

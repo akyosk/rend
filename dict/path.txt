@@ -4,7 +4,7 @@
 /druid/index.html
 /webroot/decision/login
 /webroot
-/nacos
+/im/login.html
 /.env
 /pma
 /phpmyadmin
@@ -15,10 +15,7 @@
 /config/config_global.php.bak
 /config/config.php.bak
 /config/config.bak
-/actuator/env
 /rcs/web/index.action
-/actuator
-/env
 /admin/index.php
 /admin/login.html
 /admin/index.aspx
@@ -48,13 +45,10 @@
 /app/admin
 /config.yaml
 /conf.yml
-/web.zip
-/old.zip
 /prod-api/v2/api-docs
 /prod-api/v3/api-docs
 /prod-api/durid/login.html
-/logs/20250301_access.log
-/new.zip
+/logs/20250410_access.log
 /xxl-job-admin
 /swagger-ui.html
 /login/dbconf.php～

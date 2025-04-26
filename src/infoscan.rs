@@ -63,7 +63,7 @@ pub struct ApiKeys {
     whoisxmlapi_key: String,
     dnsdump_key: String,
     bevigil_key:String,
-    robtex_key:String
+    robtex_key:String,
 }
 impl Config {
     pub fn from_default() -> Result<Self, Box<dyn Error>> {

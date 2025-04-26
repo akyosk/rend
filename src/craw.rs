@@ -5,6 +5,13 @@ use std::collections::HashSet;
 use std::error::Error;
 // use futures::stream::StreamExt;
 use crate::infoscan::OtherSets;
+use std::sync::{Arc, Mutex};
+use once_cell::sync::Lazy;
+
+// 创建一个全局静态变量来存储已经报告过的敏感路径URL
+static REPORTED_URLS: Lazy<Arc<Mutex<HashSet<String>>>> = Lazy::new(|| {
+    Arc::new(Mutex::new(HashSet::new()))
+});
 
 #[allow(dead_code)]
 struct Links{
@@ -139,6 +146,9 @@ pub async fn crawmain(
     let link_scan = LinkScan;
     let result = link_scan.crawler(url, html).await?;
 
+    // 获取对全局敏感URL列表的锁
+    let mut reported_urls = REPORTED_URLS.lock().unwrap();
+
     for url in &result {
         // 修复点1：使用字符串引用并自动解引用为 &str
         if other_sets.excluded_extensions.iter().any(|ext| url.ends_with(ext)) ||
@@ -156,10 +166,14 @@ pub async fn crawmain(
             // 修复点3：使用自动解引用
             if other_sets.keywords.iter().any(|keyword| path.contains(keyword)) {
                 if !other_sets.excluded_extensions.iter().any(|ext| url.contains(ext)) && !other_sets.pass_domain.iter().any(|ext| url.contains(ext)) {
-                    let res = format!("[+] Find sensitive path in URL: {}", url);
-                    Print::bannerprint(&res);
+                    // 检查URL是否已经报告过
+                    if !reported_urls.contains(url) {
+                        // 如果URL未报告，则加入列表并输出
+                        reported_urls.insert(url.clone());
+                        // let res = format!("[+] Find sensitive path in URL: {}", url);
+                        Print::otherprint(&url);
+                    }
                 }
-
             }
         }
     }
