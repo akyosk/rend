@@ -1,10 +1,6 @@
-// use chrono::format;
 use std::collections::HashMap;
 use std::fs;
 use clap::{Arg, Command};
-// use clap::builder::TypedValueParser;
-// use crate::infoscan::Config;
-
 mod outprint;
 mod infoscan;
 mod tofile;
@@ -16,7 +12,7 @@ mod subdomain;
 mod pocscan;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> { // 将返回类型更改为 Result
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let banner = r#"
                             .___
 _______   ____    ____    __| _/
@@ -37,21 +33,28 @@ Author: akyo    Version: 0.0.5"#;
                 .long("domain")
                 .value_name("DOMAIN")
                 .help("Specifies the domain to use")
-                .required(true)
+                .conflicts_with("file")
+        )
+        .arg(
+            Arg::new("file")
+                .short('f')
+                .long("file")
+                .value_name("FILE")
+                .help("Specifies a file containing multiple domains to scan")
         )
         .arg(
             Arg::new("timeout")
                 .long("timeout")
                 .value_name("SECONDS")
                 .help("Sets the timeout duration in seconds")
-                .default_value("10")
+                .default_value("15")
         )
         .arg(
             Arg::new("proxy")
                 .long("proxy")
                 .short('p')
                 .help("Sets the proxy server URL")
-                .value_name("BOOL")
+                .value_name("STRING")
                 .default_value("")
         )
         .arg(
@@ -75,59 +78,55 @@ Author: akyo    Version: 0.0.5"#;
                 .help("Sets the Work Threads")
                 .default_value("300")
         )
-        // .arg(
-        //     Arg::new("update")
-        //         .long("update")
-        //         .help("Check for updates")
-        //         .action(clap::ArgAction::SetTrue) // 设置为布尔标志
-        // )
         .arg(
             Arg::new("rend-config")
                 .long("rend-config")
                 .value_name("CONFIG_PATH")
                 .help("Specifies a custom config file path"),
-        ).get_matches();
-
-    // 检查是否需要更新e
-    // let update = args.get_flag("update"); // 检查是否启用
-    // if update {
-    //     update::check_and_update()?; // 执行更新逻辑
-    //     return Ok(())
-    // }
+        )
+        .arg_required_else_help(true)
+        .get_matches();
 
     // 处理传入的配置文件路径
     if let Some(config_path) = args.get_one::<String>("rend-config") {
         if !fs::metadata(config_path).is_ok() {
-            // outprint::Print::infoprint(format!("Loading user configuration from: {}", config_path));
-        // } else {
             eprintln!("Error: Configuration file '{}' does not exist.", config_path);
             return Err("Configuration file not found".into());
         }
     }
 
     // 解析其他参数
-    let domain = args.get_one::<String>("domain").unwrap();
-    outprint::Print::infoprint(format!("Load Domain: {}", domain).as_str());
-    let treads = args.get_one::<String>("threads").unwrap();
-    outprint::Print::infoprint(format!("Load Threads: {}", treads).as_str());
+    let mut arg = HashMap::new();
+    if let Some(domain) = args.get_one::<String>("domain") {
+        outprint::Print::infoprint(format!("Load Domain: {}", domain).as_str());
+        arg.insert("domain", domain.clone());
+    }
+    if let Some(file_path) = args.get_one::<String>("file") {
+        outprint::Print::infoprint(format!("Load File: {}", file_path).as_str());
+        arg.insert("file", file_path.clone());
+    }
+    let threads = args.get_one::<String>("threads").unwrap();
+    outprint::Print::infoprint(format!("Load Threads: {}", threads).as_str());
     let headers = args.get_one::<String>("headers").unwrap();
     outprint::Print::infoprint(format!("Load Header: {}", headers).as_str());
     let proxy = args.get_one::<String>("proxy").unwrap();
     if !proxy.is_empty() {
         outprint::Print::infoprint(format!("Load Proxy: {}", proxy).as_str());
-    } else { outprint::Print::infoprint("Load Proxy: None");  }
+    } else {
+        outprint::Print::infoprint("Load Proxy: None");
+    }
 
     let timeout = args.get_one::<String>("timeout").unwrap();
     outprint::Print::infoprint(format!("Load Timeout: {}", timeout).as_str());
     let ssl = args.get_one::<String>("ssl_verify").unwrap();
     outprint::Print::infoprint(format!("Load SSL: {}", ssl).as_str());
 
-    let mut arg = HashMap::new();
-    arg.insert("domain", domain.clone());
+    // 根据参数调用 infomain
+    let domain = args.get_one::<String>("domain").map(|s| s.as_str()).unwrap_or("");
     match infoscan::infomain(arg, domain, args.get_one::<String>("rend-config").map(|s| s.as_str())).await {
         Ok(_) => outprint::Print::infoprint("Work End"),
         Err(e) => outprint::Print::errprint(format!("Error: {}", e).as_str()),
     }
 
-    Ok(()) // 返回 Ok
+    Ok(())
 }

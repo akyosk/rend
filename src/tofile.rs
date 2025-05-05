@@ -113,4 +113,3 @@ pub fn other_save_to_file(file_name: &str,other:&str) -> io::Result<()> {
     writeln!(file, "{}", other)?;
     Ok(())
 }
-

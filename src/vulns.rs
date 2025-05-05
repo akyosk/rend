@@ -45,7 +45,8 @@ impl Scan for Sql {
             "SQL Server".to_string(),
             "Oracle error".to_string(),
             "DB2 SQL error".to_string(),
-            "SQLite".to_string(),
+            "Syntax error".to_string(),
+            "SQLSTATE".to_string(),
         ];
         let text = res.text().await?;
         let mut res_vulns = vec![];

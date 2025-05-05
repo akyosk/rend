@@ -119,7 +119,7 @@ struct InfoResults{
 }
 #[async_trait]
 impl Displayinfo for InfoResults {
-    async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
+    async fn display(&mut self, domian:&str, threads: usize, client: Client, _api_keys: ApiKeys, otherset:OtherSets) {
         outprint::Print::infoprint("Start organizing data");
         let filename = format!("{}.txt",domian.replace('.', "_"));
         let mut domain_list = self.domain_list.clone();
@@ -127,18 +127,8 @@ impl Displayinfo for InfoResults {
         let mut ip_port_list = vec![];
         ip_list.sort();
         ip_list.dedup();
-        let apis = port::ApiKeys{
-            fofa:api_keys.fofa_key,
-            quake:api_keys.quake_key,
-            yt:api_keys.yt_key,
-            shodan:api_keys.shodan_key,
-        };
-        // apis.insert("fofa",api_keys.fofa_key);
-        // apis.insert("quake",api_keys.quake_key);
-        // apis.insert("yt",api_keys.yt_key);
-        // apis.insert("shodan",api_keys.shodan_key);
         outprint::Print::infoprint("Start collecting IP port information");
-        if let Ok(res) = port::portmain(&ip_list,client.clone(),apis).await{
+        if let Ok(res) = port::portmain(&ip_list,&filename).await{
             ip_port_list.extend(res.clone());
             outprint::Print::bannerprint(format!("A total of {} IP port information were obtained",&res.len()).as_str());
             match tofile::ip_urls_save_to_file(&filename,&res) {
@@ -189,7 +179,7 @@ impl InfoResults {
 impl InfoFetcher for InfoRobtex {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://freeapi.robtex.com/pdns/forward/{}?key={}", domain,keys.robtex_key);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(25)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -311,16 +301,6 @@ impl InfoFetcher for InfoDnsgrep {
             }
         }
 
-        // 输出结果
-        // for domain in &domains {
-        //     results.domain_list.push(domain.to_string());
-        //     // println!("{}", domain);
-        // }
-        //
-        // for ip in &ips {
-        //     results.ip_list.push(ip.to_string());
-        //     // println!("{}", ip);
-        // }
         outprint::Print::infoprint(format!("Dnsgrep found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -804,13 +784,13 @@ impl InfoFetcher for InfoYT {
         // let query = base64::encode(format!("domain=\"{}\"",domain));
         let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",keys.yt_key,query);
         let client = Client::builder().timeout(Duration::from_secs(15)).default_headers({
-                                                                                            let mut headers = HeaderMap::new();
-                                                                                            headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
-                                                                                            headers
-                                                                                        }).build()?;
+            let mut headers = HeaderMap::new();
+            headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
+            headers
+        }).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
-            outprint::Print::errprint(format!("YT error status code: {}", response.status()).as_str());
+            outprint::Print::errprint(format!("YT-Hunter error status code: {}", response.status()).as_str());
             return Ok(InfoResults::new())
         }
         let json_response = response.json::<Value>().await?;
@@ -823,7 +803,7 @@ impl InfoFetcher for InfoYT {
                 }
             });
         }
-        outprint::Print::infoprint(format!("YT found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        outprint::Print::infoprint(format!("YT-Hunter found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
 }
@@ -1472,27 +1452,19 @@ fn parse_headers(input: &str, headers: &mut HeaderMap) {
         }
     }
 }
-
-pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path: Option<&str>) -> Result<(), Box<dyn Error>> {
-    let other_set_content = include_str!("../config/config.toml"); // 默认嵌入配置
+pub async fn infomain(arg: HashMap<&str, String>, domain: &str, custom_config_path: Option<&str>) -> Result<(), Box<dyn Error>> {
+    let other_set_content = include_str!("../config/config.toml");
     let other_content: OtherSets = toml::from_str(other_set_content)?;
 
-
-    // 加载默认配置
     let mut config = Config::from_default()?;
-
-    // 如果指定了用户配置路径，则加载自定义配置
     if let Some(path) = custom_config_path {
         outprint::Print::infoprint(&format!("Loading user configuration from: {}", path));
         config = Config::from_file(path)?;
     }
-    // let config = Config::from_default()?;
     let api_keys = config.api_keys;
 
-
-
     let client = build_client(&arg).await?;
-    let fetchers:Vec<Arc<dyn InfoFetcher + Send + Sync>> = vec![
+    let fetchers: Vec<Arc<dyn InfoFetcher + Send + Sync>> = vec![
         Arc::new(InfoFofa),
         Arc::new(InfoQuake),
         Arc::new(InfoZoomeye),
@@ -1526,37 +1498,57 @@ pub async fn infomain(arg:HashMap<&str,String>, domain: &str,custom_config_path:
         Arc::new(InfoBevigil),
         Arc::new(InfoDnsgrep),
         Arc::new(InfoMyssl),
-        Arc::new(InfoRobtex)
+        Arc::new(InfoRobtex),
     ];
     let threads = arg.get("threads").and_then(|t| t.parse::<usize>().ok()).unwrap_or(300);
-    outprint::Print::infoprint("Start enumerating subdomains");
-    let _ = subdomain::scan_subdomains(&domain, threads).await;
-    outprint::Print::infoprint("End of subdomain enumeration");
-    outprint::Print::infoprint("Start information collection");
     let combined_results = Arc::new(Mutex::new(InfoResults::new()));
     let semaphore = Arc::new(Semaphore::new(threads));
-    let tasks:Vec<_> = fetchers.into_iter().map(|fetcher| {
-        let permit = semaphore.clone();
-        let combined_results = Arc::clone(&combined_results);
-        let domain = domain.to_string();
-        let api_keys = api_keys.clone();
-        tokio::spawn(async move {
-            let _permit = permit.acquire().await.unwrap();
-            match fetcher.fetch(&domain, &api_keys).await {
-                Ok(results) => {
-                    let mut combined = combined_results.lock().await;
-                    combined.merge(results);
+
+    let domains: Vec<String> = if arg.contains_key("file") {
+        let file_path = arg.get("file").unwrap();
+        outprint::Print::infoprint(&format!("Reading domains from file: {}", file_path));
+        let content = fs::read_to_string(file_path)?;
+        content.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+    } else if !domain.is_empty() {
+        vec![domain.to_string()]
+    } else {
+        return Err("No domain or file specified".into());
+    };
+
+    for target_domain in domains.iter() {
+        outprint::Print::infoprint(&format!("Processing domain: {}", target_domain));
+        outprint::Print::infoprint("Start enumerating subdomains");
+        let _ = subdomain::scan_subdomains(target_domain, threads).await;
+        outprint::Print::infoprint("End of subdomain enumeration");
+        outprint::Print::infoprint("Start information collection");
+
+        let tasks: Vec<_> = fetchers.iter().map(|fetcher| {
+            let permit = semaphore.clone();
+            let combined_results = Arc::clone(&combined_results);
+            let domain = target_domain.clone();
+            let api_keys = api_keys.clone();
+            let fetcher = Arc::clone(fetcher); // 克隆 Arc 以延长生命周期
+            tokio::spawn(async move {
+                let _permit = permit.acquire().await.unwrap();
+                match fetcher.fetch(&domain, &api_keys).await {
+                    Ok(results) => {
+                        let mut combined = combined_results.lock().await;
+                        combined.merge(results);
+                    }
+                    Err(e) => {
+                        outprint::Print::errprint(format!("Error for {}: {}", domain, e).as_str());
+                    }
                 }
-                Err(e) => {
-                    outprint::Print::errprint(format!("Error: {}", e).as_str());
-                }
-            }
-        })
-    }).collect();
-    join_all(tasks).await;
+            })
+        }).collect();
+
+        join_all(tasks).await;
+    }
+
     let mut combined_results = combined_results.lock().await;
     if !combined_results.domain_list.is_empty() || !combined_results.ip_list.is_empty() {
-        combined_results.display(domain,threads,client,api_keys,other_content).await;
+        let display_domain = domains.first().unwrap_or(&"combined_results".to_string()).clone();
+        combined_results.display(&display_domain, threads, client, api_keys, other_content).await;
     }
 
     Ok(())

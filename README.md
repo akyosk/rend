@@ -111,8 +111,10 @@ cd rend && cargo build --release
 ~~~text
 # 域名扫描
 ./rend -d domain.com
-# 编译后也可指定其他api.toml文件执行,指定的toml优先级最高
+# 编译后也可指定其他api.toml文件执行,指定的toml配置文件优先级最高
 ./rend -d domain.com --rend-config otherApi.toml
+# 域名批量扫描
+./rend -f domains.txt
 ~~~
 
 

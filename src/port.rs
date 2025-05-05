@@ -1,53 +1,44 @@
 use std::error::Error;
 use std::sync::Arc;
-use async_trait::async_trait;
-use base64::engine::general_purpose::STANDARD;
 use futures::future::join_all;
-use reqwest::Client;
 use tokio::sync::{Mutex, Semaphore};
-use serde_json::Value;
+use tokio::net::TcpStream;
+use tokio::time::{timeout, Duration};
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
+use futures::stream::{self, StreamExt};
+use tokio::task;
+use num_cpus;
 use crate::outprint;
-use serde_json::json;
-use reqwest::header::HeaderMap;
-use base64::engine::Engine as _;
-// use scraper::{Html, Selector};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use crate::tofile::other_save_to_file;
 
-struct InfoIPRes{
-    ips: InfoPortRes
+struct InfoIPRes {
+    ips: InfoPortRes,
 }
 
-impl InfoIPRes{
-    fn new() -> InfoIPRes{
-        InfoIPRes{ips: InfoPortRes::new()}
+impl InfoIPRes {
+    fn new() -> InfoIPRes {
+        InfoIPRes {
+            ips: InfoPortRes::new(),
+        }
     }
 }
 
-#[derive(Clone)]
-pub struct ApiKeys{
-    pub fofa:String,
-    pub yt:String,
-    pub shodan:String,
-    pub quake:String,
-}
-
-struct InfoPortRes{
+struct InfoPortRes {
     ports: Vec<String>,
 }
 
-impl InfoPortRes{
-    fn new() -> InfoPortRes{
-        InfoPortRes{ports: Vec::new()}
+impl InfoPortRes {
+    fn new() -> InfoPortRes {
+        InfoPortRes {
+            ports: Vec::new(),
+        }
     }
-    fn push(&mut self, ports: String){
-        self.ports.push(ports);
-    }
-    fn rt(&self) -> Vec<String>{
-        self.ports.clone()
-    }
-    fn extend(&mut self, ports: Vec<String>){
+    fn extend(&mut self, ports: Vec<String>) {
         self.ports.extend(ports);
     }
-    fn res(&self) -> Vec<String>{
+    fn res(&self) -> Vec<String> {
         let mut ports = self.ports.clone();
         ports.sort();
         ports.dedup();
@@ -55,196 +46,76 @@ impl InfoPortRes{
     }
 }
 
-#[async_trait]
-trait InfoPort{
-    async fn fetch(&self,ip:&str,api_keys:ApiKeys,client: &Client) -> Result<InfoPortRes,Box<dyn Error + Send + Sync>>;
-}
+pub async fn portmain(
+    ips: &Vec<String>,
+    filename:&str
 
-struct ShodanIp;
-struct FofaIp;
-struct QuakeIp;
-struct YtIp;
-
-#[async_trait]
-impl InfoPort for ShodanIp{
-    async fn fetch(&self,ip:&str,api_keys:ApiKeys,client: &Client) -> Result<InfoPortRes,Box<dyn Error + Send + Sync>>{
-        let url = format!("https://api.shodan.io/shodan/host/{}?key={}",ip,api_keys.shodan);
-        let response = client.get(&url).send().await?;
-        let mut results = InfoPortRes::new();
-        if !response.status().is_success(){
-            // outprint::Print::errprint(format!("Shodan error status code: {}", response.status()).as_str());
-            return Ok(results)
-        };
-        let json_response = response.json::<Value>().await?;
-        if let Some(ports) = json_response.get("ports").and_then(|p| p.as_array()){
-            ports.into_iter().for_each(|port|{
-                results.push(format!("{}:{}",ip,port))
-            })
-        }
-        if results.ports.len() > 100 {
-            outprint::Print::errprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
-        }
-
-        Ok(results)
-    }
-}
-
-#[async_trait]
-impl InfoPort for FofaIp{
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-        let base64_str = STANDARD.encode(format!("ip={}", ip));
-        let url = format!("https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true", api_keys.fofa,base64_str);
-        let response = client.get(&url).send().await?;
-        let mut results = InfoPortRes::new();
-        if !response.status().is_success() {
-            return Ok(results)
-        }
-        let json_response = response.json::<Value>().await?;
-        let empty_vec = vec![];
-
-        let data_array = json_response.get("results").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
-
-        data_array.iter().for_each(|data| {
-            if let Some(ports) = data.get(2){
-                if let Some(p) = ports.as_str() {
-                    results.push(format!("{}:{}",ip,p))
-                }
-            }
-        });
-        if results.ports.len() > 100 {
-            outprint::Print::errprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
-        }
-
-        Ok(results)
-    }
-}
-
-#[async_trait]
-impl InfoPort for QuakeIp {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-        let url = "https://quake.360.net/api/v3/search/quake_service";
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "x-quaketoken",
-            api_keys.quake.parse()?,
-        );
-        let query = json!({
-            "query": format!("ip: {}", ip), "start": 0, "size": 100,
-        });
-        let mut results = InfoPortRes::new();
-        let response = client.post(url).json(&query).headers(headers).send().await?;
-        if !response.status().is_success() {
-            return Ok(results)
-        }
-        let json_response = response.json::<Value>().await?;
-        if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
-            Ok(results)
-        }else {
-            let empty_vec = vec![];
-            let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
-            data_array.iter().for_each(|data| {
-                if let Some(port) = data.get("port").and_then(|p| p.as_str()) {
-                    results.push(format!("{}:{}",ip,port))
-                }
-            });
-            if results.ports.len() > 100 {
-                outprint::Print::errprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
-            }
-
-            Ok(results)
-        }
-    }
-}
-
-#[async_trait]
-impl InfoPort for YtIp {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-        let query = STANDARD.encode(format!("ip=\"{}\"", ip));
-        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",api_keys.yt,query);
-        let response = client.get(&url).send().await?;
-        let mut results = InfoPortRes::new();
-        if !response.status().is_success() {
-            return Ok(results)
-        }
-        let json_response = response.json::<Value>().await?;
-        if let Some(data) = json_response.get("data").and_then(|d| d.get("arr")).and_then(|d| d.as_array()) {
-            data.iter().for_each(|data| {
-                if let Some(port) = data.get("port").and_then(|o| o.as_str()) {
-                    results.push(format!("{}:{}",ip,port))
-                }
-            });
-        }
-        if results.ports.len() > 50 {
-            outprint::Print::errprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
-        }
-
-        Ok(results)
-    }
-}
-
-pub async fn portmain(ips: &Vec<String>, client: Client, api_keys: ApiKeys) -> Result<Vec<String>, Box<dyn Error>> {
-    let str_ip = format!("A total of {} IP addresses were received", ips.len());
+) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
+    let str_ip = format!("Received {} IP addresses in total", ips.len());
     outprint::Print::infoprint(str_ip.as_str());
 
     // 先进行CDN检测
-    let non_cdn_ips = filter_cdn_ips(ips, client.clone()).await;
+    let non_cdn_ips = filter_cdn_ips(ips).await;
 
     if non_cdn_ips.is_empty() {
-        outprint::Print::infoprint("No non-CDN IP address detected, skipping API query");
+        outprint::Print::infoprint("Non-CDN IP addresses not detected, API queries and port scans skipped");
         return Ok(Vec::new());
     }
 
-    outprint::Print::infoprint(format!("{} non-CDN IPs detected, IP-PORT detection started", non_cdn_ips.len()).as_str());
-
-    let fetchers: Vec<Arc<dyn InfoPort + Send + Sync>> = vec![
-        Arc::new(FofaIp),
-        Arc::new(QuakeIp),
-        Arc::new(YtIp),
-        Arc::new(ShodanIp),
-    ];
-
+    outprint::Print::infoprint(
+        format!(
+            "{} non-CDN IPs detected, further IP CDN detection and port scanning started",
+            non_cdn_ips.len()
+        )
+            .as_str(),
+    );
+    outprint::Print::infoprint("Scan multiple IP full ports, please wait patiently...");
     let ips_res = Arc::new(Mutex::new(InfoIPRes::new()));
     let semaphore = Arc::new(Semaphore::new(3));
     let mut tasks = vec![];
-
-    // 只对非欺诈IP进行API查询
+    // 只对非CDN IP进行端口扫描
     for ip in non_cdn_ips.iter() {
-        for fetcher in &fetchers {
-            let premit = semaphore.clone();
-            let fetch = Arc::clone(&fetcher);
-            let client = client.clone();
-            let api_keys = api_keys.clone();
-            let ips_res = Arc::clone(&ips_res);
-            let ip = ip.clone();
-            let task = tokio::spawn(async move {
-                let _permit = premit.acquire().await.unwrap();
-                match fetch.fetch(&ip, api_keys, &client).await {
-                    Ok(res) => {
-                        let mut ips_res = ips_res.lock().await;
-                        ips_res.ips.extend(res.rt());
-                    }
-                    _ => {}
+        let permit = semaphore.clone();
+        let ips_res = Arc::clone(&ips_res);
+        let ip = ip.clone();
+        let filename = filename.to_string();
+
+        let task = tokio::spawn(async move {
+            let _permit = permit.acquire().await.unwrap();
+            match scan_ip_ports(&ip, Duration::from_millis(5000),filename).await {
+                Ok(ports) => {
+                    let mut ips_res = ips_res.lock().await;
+                    // 将扫描结果转换为 ip:port 格式
+                    let formatted_ports: Vec<String> = ports
+                        .into_iter()
+                        .map(|port| format!("{}:{}", ip, port))
+                        .collect();
+                    ips_res.ips.extend(formatted_ports);
                 }
-            });
-            tasks.push(task);
-        }
+                Err(_e) => {
+                    // outprint::Print::errprint(
+                    //     format!("扫描IP {} 失败: {}", ip, e).as_str(),
+                    // );
+                }
+            }
+        });
+        tasks.push(task);
     }
     join_all(tasks).await;
     let final_res = ips_res.lock().await;
     Ok(final_res.ips.res())
 }
 
-async fn filter_cdn_ips(ips: &Vec<String>, client: Client) -> Vec<String> {
+async fn filter_cdn_ips(ips: &Vec<String>) -> Vec<String> {
     let semaphore = Arc::new(Semaphore::new(10)); // 限制并发请求数
     let non_cdn_ips = Arc::new(Mutex::new(Vec::new()));
 
-    outprint::Print::infoprint(format!("Start detecting whether {} IPs are CDNs...", ips.len()).as_str());
+    outprint::Print::infoprint(format!("Start checking whether {} IPs are CDNs", ips.len()).as_str());
 
     let mut tasks = vec![];
 
     for ip in ips {
         let permit = semaphore.clone();
-        let client = client.clone();
         let ip = ip.clone();
         let non_cdn_ips = Arc::clone(&non_cdn_ips);
 
@@ -258,13 +129,15 @@ async fn filter_cdn_ips(ips: &Vec<String>, client: Client) -> Vec<String> {
                 ip.clone()
             };
 
-            match is_cdn_ip(&clean_ip, &client).await {
+            match is_cdn_ip(&clean_ip).await {
                 (false, _) => {
                     let mut ips = non_cdn_ips.lock().await;
                     ips.push(ip);
                 }
                 (true, reason) => {
-                    outprint::Print::errprint(format!("Skip CDN IP {}: {}", clean_ip, reason).as_str());
+                    outprint::Print::passprint(
+                        format!("Skip CDN IP {}: {}", clean_ip, reason).as_str(),
+                    );
                 }
             }
         });
@@ -275,88 +148,31 @@ async fn filter_cdn_ips(ips: &Vec<String>, client: Client) -> Vec<String> {
     join_all(tasks).await;
 
     let result = non_cdn_ips.lock().await.clone();
-    outprint::Print::infoprint(format!("CDN detection completed: {} IPs in total, {} non-CDN IPs filtered out", ips.len(), result.len()).as_str());
+    outprint::Print::infoprint(
+        format!(
+            "CDN detection completed: {} IPs in total, {} non-CDN IPs initially screened out",
+            ips.len(),
+            result.len()
+        )
+            .as_str(),
+    );
 
     result
 }
 
 // 判断IP是否为CDN
-async fn is_cdn_ip(ip: &str, client: &Client) -> (bool, String) {
-    // 方法1: 使用ipinfo.io API检查ASN信息
-    match check_ip_info(ip, client).await {
-        Some((is_cdn, reason)) if is_cdn => return (true, reason),
-        _ => {}
-    }
-
-    // // 方法2: 检查反向DNS记录是否含有CDN关键词
-    // match check_reverse_dns(ip).await {
-    //     Some((is_cdn, reason)) if is_cdn => return (true, reason),
-    //     _ => {}
-    // }
-
-    // 方法3: 检查本地已知的CDN CIDR列表
+async fn is_cdn_ip(ip: &str) -> (bool, String) {
+    // 方法: 检查本地已知的CDN CIDR列表
     match check_known_cdn_ranges(ip) {
         Some((is_cdn, reason)) if is_cdn => return (true, reason),
         _ => {}
     }
-
-    // 方法4: 检查IP138网站上关联的域名数量
-    // match check_ip138_domains(ip, client).await {
-    //     Some((is_cdn, reason)) if is_cdn => return (true, reason),
-    //     _ => {}
-    // }
-
     // 默认认为不是CDN
     (false, String::new())
 }
 
-// 通过ipinfo.io检查ASN信息
-async fn check_ip_info(ip: &str, client: &Client) -> Option<(bool, String)> {
-    // CDN公司的域名关键字列表
-    let cdn_keywords = [
-        "cdn",  "cloudflare","cloudfront",
-        "cdnetworks", "limelight", "edgecast", "maxcdn",
-        // 阿里云CDN相关关键字
-        "alicdn"
-    ];
-
-    // 查询ipinfo.io
-    let url = format!("https://ipinfo.io/{}/json", ip);
-
-    match client.get(&url).send().await {
-        Ok(response) if response.status().is_success() => {
-            if let Ok(data) = response.json::<serde_json::Value>().await {
-                // 检查ASN
-                if let Some(org) = data.get("org").and_then(|o| o.as_str()) {
-                    // 检查组织名称中是否含有CDN关键词
-                    for keyword in &cdn_keywords {
-                        if org.to_lowercase().contains(keyword) {
-                            return Some((true, format!("Organization name match: {}", org)));
-                        }
-                    }
-                }
-
-                // 检查主机名
-                if let Some(hostname) = data.get("hostname").and_then(|h| h.as_str()) {
-                    for keyword in &cdn_keywords {
-                        if hostname.to_lowercase().contains(keyword) {
-                            return Some((true, format!("Hostname match: {}", hostname)));
-                        }
-                    }
-                }
-            }
-        }
-        _ => {}
-    }
-
-    None
-}
-
-
 // 检查IP是否在已知的CDN IP范围内
 fn check_known_cdn_ranges(ip: &str) -> Option<(bool, String)> {
-    // 这里可以添加常见CDN提供商的IP段列表
-    // 为简化示例，只列出几个示例IP段
     let cdn_ranges = [
         ("103.21.244.0/22", "Cloudflare"),
         ("103.22.200.0/22", "Cloudflare"),
@@ -385,7 +201,10 @@ fn check_known_cdn_ranges(ip: &str) -> Option<(bool, String)> {
     if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
         for (range, provider) in &cdn_ranges {
             if is_ip_in_cidr(&ip_addr, range) {
-                return Some((true, format!("The IP is in the network segment of {}", provider)));
+                return Some((
+                    true,
+                    format!("The IP is in the network segment {}", provider),
+                ));
             }
         }
     }
@@ -401,83 +220,210 @@ fn is_ip_in_cidr(ip: &std::net::IpAddr, cidr: &str) -> bool {
     false
 }
 
-// 新增: 检查IP138网站上关联的域名数量
-// async fn check_ip138_domains(ip: &str, client: &Client) -> Option<(bool, String)> {
-//     // 添加1秒延迟
-//     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-//
-//     let url = format!("https://site.ip138.com/{}/", ip);
-//
-//     // 设置请求头
-//     let mut headers = HeaderMap::new();
-//     headers.insert(USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"));
-//
-//     // 发送请求
-//     let response = match client.get(&url).headers(headers).send().await {
-//         Ok(resp) => resp,
-//         Err(_) => return None,
-//     };
-//
-//     if !response.status().is_success() {
-//         return None;
-//     }
-//
-//     // 获取HTML内容
-//     let html_content = match response.text().await {
-//         Ok(text) => text,
-//         Err(_) => return None,
-//     };
-//
-//     // 解析HTML
-//     let document = Html::parse_document(&html_content);
-//
-//     // 创建选择器
-//     let li_selector = match Selector::parse("li") {
-//         Ok(selector) => selector,
-//         Err(_) => return None,
-//     };
-//
-//     let date_span_selector = match Selector::parse("span.date") {
-//         Ok(selector) => selector,
-//         Err(_) => return None,
-//     };
-//
-//     let a_selector = match Selector::parse("a") {
-//         Ok(selector) => selector,
-//         Err(_) => return None,
-//     };
-//
-//     // 使用HashSet来存储不同的二级域名
-//     use std::collections::HashSet;
-//     let mut second_level_domains = HashSet::new();
-//     let mut all_domains = Vec::new(); // 用于调试和记录
-//
-//     for li in document.select(&li_selector) {
-//         // 确认li标签中有span.date元素
-//         if li.select(&date_span_selector).next().is_some() {
-//             // 查找a标签
-//             if let Some(a_tag) = li.select(&a_selector).next() {
-//                 if let Some(domain_text) = a_tag.text().next() {
-//                     // 保存所有域名以便调试
-//                     all_domains.push(domain_text.to_string());
-//
-//                     // 直接基于点号分割提取二级域名
-//                     let parts: Vec<&str> = domain_text.split('.').collect();
-//                     if parts.len() >= 2 {
-//                         // 如果有两个或更多部分，取倒数第二个部分作为二级域名
-//                         let second_level_domain = parts[parts.len() - 2].to_string();
-//                         second_level_domains.insert(second_level_domain);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//
-//     // 如果不同二级域名数量超过阈值，判定为CDN
-//     let domain_count = second_level_domains.len();
-//     if domain_count >= 20 {
-//         return Some((true, format!("Found {} different second-level domain names associated with this IP", domain_count)));
-//     }
-//
-//     None
-// }
+// 端口扫描函数
+async fn scan_ip_ports(ip: &str, timeout_duration: Duration, filename: String) -> Result<Vec<u16>, Box<dyn Error + Send + Sync>> {
+    let ip_addr = IpAddr::from_str(ip)?;
+    let ports: Vec<u16> = (1..=65535).collect();
+    let concurrency = 500;
+    let num_threads = num_cpus::get().max(4);
+    let max_open_ports = 100; // 最大开放端口数阈值
+
+    let chunk_size = (ports.len() + num_threads - 1) / num_threads;
+    let port_chunks: Vec<Vec<u16>> = ports
+        .chunks(chunk_size)
+        .map(|chunk| chunk.to_vec())
+        .collect();
+
+    let mut open_ports = Vec::new();
+    let open_ports_counter = Arc::new(Mutex::new(0));
+
+    let tasks: Vec<_> = port_chunks
+        .into_iter()
+        .map(|chunk| {
+            let open_ports_counter = Arc::clone(&open_ports_counter);
+            task::spawn(async move {
+                let mut results = Vec::new();
+                let sub_chunks: Vec<Vec<u16>> = chunk
+                    .chunks(concurrency)
+                    .map(|sub_chunk| sub_chunk.to_vec())
+                    .collect();
+
+                for sub_chunk in sub_chunks {
+                    let sub_results = stream::iter(sub_chunk.into_iter())
+                        .map(|port| scan_port(ip_addr, port, timeout_duration))
+                        .buffer_unordered(concurrency)
+                        .collect::<Vec<_>>()
+                        .await;
+
+                    let mut counter = open_ports_counter.lock().await;
+                    for (port, is_open) in sub_results {
+                        if is_open {
+                            *counter += 1;
+                            if *counter > max_open_ports {
+                                return Err(Box::new(std::io::Error::new(
+                                    std::io::ErrorKind::Other,
+                                    format!("IP {} Mark as CDN", ip_addr),
+                                )) as Box<dyn Error + Send + Sync>);
+                            }
+                            results.push(port);
+                        }
+                    }
+                }
+                Ok(results)
+            })
+        })
+        .collect();
+
+    for task in tasks {
+        match task.await? {
+            Ok(ports) => {
+                open_ports.extend(ports);
+            }
+            Err(e) => {
+                outprint::Print::errprint(e.to_string().as_str());
+                return Ok(Vec::new()); // 返回空结果，不记录该IP的端口
+            }
+        }
+    }
+    // outprint::Print::infoprint("Port scan completed");
+    // 对开放端口进行 banner 识别，使用多核并发
+    if !open_ports.is_empty() {
+        // outprint::Print::infoprint("Start partial banner identification of ports");
+        let banner_concurrency = 300; // 控制 banner 扫描的并发数
+        let num_threads = num_cpus::get().max(4);
+        let chunk_size = (open_ports.len() + num_threads - 1) / num_threads;
+        let port_chunks: Vec<Vec<u16>> = open_ports
+            .chunks(chunk_size)
+            .map(|chunk| chunk.to_vec())
+            .collect();
+
+        let banner_tasks: Vec<_> = port_chunks
+            .into_iter()
+            .map(|chunk| {
+                let filename = filename.clone();
+                task::spawn(async move {
+                    let sub_chunks: Vec<Vec<u16>> = chunk
+                        .chunks(banner_concurrency)
+                        .map(|sub_chunk| sub_chunk.to_vec())
+                        .collect();
+
+                    for sub_chunk in sub_chunks {
+                        let sub_tasks = stream::iter(sub_chunk.into_iter())
+                            .map(|port| identify_service(ip_addr, port, timeout_duration, &filename))
+                            .buffer_unordered(banner_concurrency)
+                            .collect::<Vec<_>>()
+                            .await;
+
+                        for result in sub_tasks {
+                            if let Err(_e) = result {
+
+                            }
+                        }
+                    }
+                })
+            })
+            .collect();
+
+        join_all(banner_tasks).await;
+        // outprint::Print::infoprint("Port banner identification ends");
+    }
+
+    Ok(open_ports)
+}
+
+// 服务 banner 识别函数
+async fn identify_service(ip: IpAddr, port: u16, timeout_duration: Duration, filename: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    // 跳过特定端口的 banner 扫描
+    let skip_ports = [22, 21, 153, 445, 3306, 1521,5432,1433,6379,27017,9200, 53, 23];
+    if skip_ports.contains(&port) {
+        return Ok(());
+    }
+
+    let socket_addr = SocketAddr::new(ip, port);
+
+    // 尝试 JDWP 识别
+    if let Ok(is_jdwp) = check_jdwp(socket_addr, timeout_duration).await {
+        if is_jdwp {
+            outprint::Print::vulnportprint(
+                format!("IP {}:{} Jdwp service detected", ip, port).as_str(),
+            );
+            let _ = other_save_to_file(&filename,format!("IP {}:{} Jdwp service detected", ip, port).as_str());
+            return Ok(());
+        }
+    }
+
+    // 尝试 ActiveMQ 识别
+    if let Ok(is_activemq) = check_activemq(socket_addr, timeout_duration).await {
+        if is_activemq {
+            outprint::Print::vulnportprint(
+                format!("IP {}:{} ActiveMQ service detected", ip, port).as_str(),
+            );
+            let _ = other_save_to_file(&filename,format!("IP {}:{} Jdwp service detected", ip, port).as_str());
+            return Ok(());
+        }
+    }
+
+    Ok(())
+}
+
+// 检查 JDWP 服务
+async fn check_jdwp(socket_addr: SocketAddr, timeout_duration: Duration) -> Result<bool, Box<dyn Error + Send + Sync>> {
+    let stream = timeout(timeout_duration, TcpStream::connect(socket_addr)).await??;
+    let mut stream = stream;
+    // 发送 JDWP 握手字符串
+    stream.write_all(b"JDWP-Handshake").await?;
+    stream.flush().await?;
+
+    // 读取响应
+    let mut buffer = [0; 14];
+    let result = timeout(timeout_duration, stream.read_exact(&mut buffer)).await;
+
+    match result {
+        Ok(Ok(_)) => {
+            if buffer == b"JDWP-Handshake"[..] {
+                return Ok(true);
+            }
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+// 检查 ActiveMQ 服务
+async fn check_activemq(socket_addr: SocketAddr, timeout_duration: Duration) -> Result<bool, Box<dyn Error + Send + Sync>> {
+    let stream = timeout(timeout_duration, TcpStream::connect(socket_addr)).await??;
+    let mut stream = stream;
+
+    // 发送简单的 OpenWire 协议帧（版本查询）
+    let openwire_frame = b"\x00\x00\x00\x0f\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    stream.write_all(openwire_frame).await?;
+    stream.flush().await?;
+
+    // 读取响应
+    let mut buffer = vec![0; 1024];
+    let result = timeout(timeout_duration, stream.read(&mut buffer)).await;
+
+    match result {
+        Ok(Ok(n)) if n > 0 => {
+            let response = String::from_utf8_lossy(&buffer[..n]);
+            if response.contains("ActiveMQ") {
+                return Ok(true);
+            }
+        }
+        _ => {}
+    }
+    Ok(false)
+}
+
+async fn scan_port(ip: IpAddr, port: u16, timeout_duration: Duration) -> (u16, bool) {
+    let socket_addr = SocketAddr::new(ip, port);
+    let is_open = check_connection(socket_addr, timeout_duration).await;
+    (port, is_open)
+}
+
+async fn check_connection(socket_addr: SocketAddr, timeout_duration: Duration) -> bool {
+    timeout(timeout_duration, TcpStream::connect(socket_addr))
+        .await
+        .map(|stream| stream.is_ok() && stream.unwrap().local_addr().is_ok())
+        .unwrap_or(false)
+}

