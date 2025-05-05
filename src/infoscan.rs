@@ -119,7 +119,7 @@ struct InfoResults{
 }
 #[async_trait]
 impl Displayinfo for InfoResults {
-    async fn display(&mut self, domian:&str, threads: usize, client: Client, _api_keys: ApiKeys, otherset:OtherSets) {
+    async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
         outprint::Print::infoprint("Start organizing data");
         let filename = format!("{}.txt",domian.replace('.', "_"));
         let mut domain_list = self.domain_list.clone();
@@ -127,8 +127,14 @@ impl Displayinfo for InfoResults {
         let mut ip_port_list = vec![];
         ip_list.sort();
         ip_list.dedup();
+        let apis = port::ApiKeys{
+            fofa:api_keys.fofa_key,
+            // quake:api_keys.quake_key,
+            yt:api_keys.yt_key,
+            shodan:api_keys.shodan_key,
+        };
         outprint::Print::infoprint("Start collecting IP port information");
-        if let Ok(res) = port::portmain(&ip_list,&filename).await{
+        if let Ok(res) = port::portmain(&ip_list,&filename,client.clone(),apis).await{
             ip_port_list.extend(res.clone());
             outprint::Print::bannerprint(format!("A total of {} IP port information were obtained",&res.len()).as_str());
             match tofile::ip_urls_save_to_file(&filename,&res) {
