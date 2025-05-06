@@ -40,6 +40,9 @@ pub struct OtherSets {
     pub(crate) excluded_extensions: Vec<String>,
     pub(crate) excluded_patterns: Vec<String>,
     pub(crate) pass_domain: Vec<String>,
+    // pub(crate) port_random_max: u16,
+    // pub(crate) port_random_min: u16,
+    // pub(crate) port_max: u16,
 }
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -132,6 +135,7 @@ impl Displayinfo for InfoResults {
             // quake:api_keys.quake_key,
             yt:api_keys.yt_key,
             shodan:api_keys.shodan_key,
+            zoomeye:api_keys.zoomeye_key,
         };
         outprint::Print::infoprint("Start collecting IP port information");
         if let Ok(res) = port::portmain(&ip_list,&filename,client.clone(),apis).await{

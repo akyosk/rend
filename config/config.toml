@@ -4,6 +4,13 @@ keywords = ["admin", "login", "system", "administrator", "config", "swagger","fo
 excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"]
 excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]
 
+## 端口阈值,超出判定cdn
+#port_max = 200
+#
+## 端口遍历区间
+#port_random_min = 7000
+#port_random_max = 10000
+
 # 定义域名黑名单 爬取过程中忽略的名单
 pass_domain = [
     ".apache.org",

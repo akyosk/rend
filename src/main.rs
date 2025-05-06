@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use clap::{Arg, Command};
+use rand::Rng;
 mod outprint;
 mod infoscan;
 mod tofile;
@@ -13,15 +14,45 @@ mod pocscan;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let banner = r#"
+    let banner = [r#"
                             .___
 _______   ____    ____    __| _/
 \_  __ \_/ __ \  /    \  / __ |
  |  | \/\  ___/ |   |  \/ /_/ |
  |__|    \___  >|___|  /\____ |
              \/      \/      \/
-Author: akyo    Version: 0.0.5"#;
-    outprint::Print::bannerprint(banner);
+Author: akyo    Version: 0.0.5"#,
+"01110010 01100101 01101110 01100100
+Author: akyo    Version: 0.0.5",
+        r#"
+                   _________
+_________________________  /
+__  ___/  _ \_  __ \  __  /
+_  /   /  __/  / / / /_/ /
+/_/    \___//_/ /_/\__,_/
+Author: akyo    Version: 0.0.5"#
+    ];
+    // outprint::Print::bannerprint(banner);
+    let random_string = banner
+        .get(rand::thread_rng().gen_range(0..banner.len()))
+        .unwrap_or(&"No string selected");
+    outprint::Print::bannerprint(format!("{}", random_string).as_str());
+
+    let rand_str = vec![
+        "Tools are prohibited from being used in illegal ways",
+        "I will become stronger",
+        "I'm super fast",
+        "I'll make the job a breeze",
+        "Tear target ······",
+        "Make domain names more transparent",
+        "I support at least 30+ search engines",
+        "Look what I found",
+        "Search everything",
+    ];
+    let random_string = rand_str
+        .get(rand::thread_rng().gen_range(0..rand_str.len()))
+        .unwrap_or(&"No string selected");
+    outprint::Print::bannerprint(format!("[!]{}", random_string).as_str());
 
     let args = Command::new("rend")
         .version("0.0.5")
@@ -113,7 +144,7 @@ Author: akyo    Version: 0.0.5"#;
     if !proxy.is_empty() {
         outprint::Print::infoprint(format!("Load Proxy: {}", proxy).as_str());
     } else {
-        outprint::Print::infoprint("Load Proxy: None");
+        outprint::Print::infoprint("Load Proxy: Null");
     }
 
     let timeout = args.get_one::<String>("timeout").unwrap();
