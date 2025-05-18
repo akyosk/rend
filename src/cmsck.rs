@@ -100,6 +100,28 @@ impl Rescraw {
         self.urls.clone()
     }
 }
+
+struct Unauthorized{
+    url: Mutex<Vec<String>>,
+}
+impl Unauthorized {
+    fn new() -> Self{
+        Unauthorized{
+            url: Mutex::new(Vec::new()),
+        }
+    }
+    async fn push(&self, domain: String) {
+        let mut urls = self.url.lock().await;
+        urls.push(domain);
+    }
+
+    async fn take_all(&self) -> Vec<String> {
+        let mut urls = self.url.lock().await;
+        std::mem::take(&mut *urls) // 清空当前数据并返回旧数据
+    }
+
+}
+
 struct NotFound{
     url: Mutex<Vec<String>>,
 }
@@ -171,6 +193,8 @@ struct Cmsck {
     not_found: Arc<NotFound>,
     ok_list: Arc<Mutex<Vec<String>>>,
     bypass_list: Arc<Bypass>,
+    unauthorized_list: Arc<Unauthorized>,
+
 }
 
 impl Cmsck {
@@ -320,6 +344,12 @@ impl Cmsck {
                 self.bypass_list.push(url.to_string()).await;
                 Ok(vec![])
             }
+            reqwest::StatusCode::UNAUTHORIZED => {
+                outprint::Print::unauthorizedprint(url);
+                self.unauthorized_list.push(url.to_string()).await;
+
+                Ok(vec![])
+            }
             _ => Ok(vec![]),
         }
     }
@@ -387,7 +417,8 @@ impl Cmsck {
         if html_text.len() == homepage_length {
             return Ok(());
         }
-
+        let status_as_u64 = status.as_u16() as u64;
+        self.ckhtml(&url, &status_as_u64,html_text.as_str(),filename,None).await?;
         let _ = editor_urls_save_to_file(filename,&url);
         Ok(())
     }
@@ -410,11 +441,13 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     let not_found = Arc::new(NotFound::new());
     let ok_list = Arc::new(Mutex::new(Vec::new()));
     let bypass_list = Arc::new(Bypass::new());
+    let unauthorized_list = Arc::new(Unauthorized::new());
     let crawer = Cmsck {
         client: Arc::clone(&client),
         not_found: Arc::clone(&not_found),
         ok_list: Arc::clone(&ok_list),
         bypass_list: Arc::clone(&bypass_list),
+        unauthorized_list: Arc::clone(&unauthorized_list),
     };
     let mut req_domains = vec![];
     for domain in domains{
@@ -460,16 +493,17 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     let ok_list_urls = ok_list.lock().await.clone();
     let not_found_urls = not_found.take_all().await;
     let bypass_urls = bypass_list.take_all().await;
+    let unauthorized_urls = unauthorized_list.take_all().await;
     // 调用yaml-poc
     outprint::Print::infoprint("Start loading yaml pocs file");
     // 调用 pocsmain 执行并发验证
 
-    fn merge_and_deduplicate(vec1: Vec<String>, vec2: Vec<String>, vec3: Vec<String>) -> Vec<String> {
+    fn merge_and_deduplicate(vec1: Vec<String>, vec2: Vec<String>, vec3: Vec<String>,vec4: Vec<String>) -> Vec<String> {
         let mut seen = HashSet::new();
         let mut result = Vec::new();
 
         // 按顺序遍历所有元素，保留首次出现的元素
-        for s in vec1.into_iter().chain(vec2).chain(vec3) {
+        for s in vec1.into_iter().chain(vec2).chain(vec3).chain(vec4) {
             if seen.insert(s.clone()) { // HashSet.insert() 返回是否是新插入
                 result.push(s);
             }
@@ -478,14 +512,18 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         result
     }
     let _ = tofile::other_save_to_file(&filename,"\n[VULNS INFO]");
-    let pocs_req_domains = merge_and_deduplicate(ok_list_urls.clone(), not_found_urls.clone(), bypass_urls.clone());
+    let pocs_req_domains = merge_and_deduplicate(ok_list_urls.clone(), not_found_urls.clone(), bypass_urls.clone(),unauthorized_urls.clone());
     pocsmain(pocs_req_domains, c.clone(),filename).await?;
 
 
     outprint::Print::infoprint("Yaml pocs execution ends");
 
     // let ok_list_urls = ok_list.lock().await.clone();
-
+    if !unauthorized_urls.is_empty() {
+        let _ = tofile::other_save_to_file(filename,"\n[401 URLS]");
+        tofile::bypass_urls_save_to_file(&filename, &unauthorized_urls)?;
+        outprint::Print::bannerprint(format!("401 URL saving in: {} ",filename).as_str());
+    }
     if !ok_list_urls.is_empty() {
         outprint::Print::infoprint("Start enumerating editor paths");
         let _ = tofile::other_save_to_file(filename,"\n[URLS PATH INFO]");

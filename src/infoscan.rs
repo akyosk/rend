@@ -67,6 +67,7 @@ pub struct ApiKeys {
     dnsdump_key: String,
     bevigil_key:String,
     robtex_key:String,
+    zone_key:String,
 }
 impl Config {
     pub fn from_default() -> Result<Self, Box<dyn Error>> {
@@ -116,6 +117,7 @@ struct InfoBevigil;
 struct InfoDnsgrep;
 struct InfoMyssl;
 struct InfoRobtex;
+struct InfoZone;
 struct InfoResults{
     domain_list: Vec<String>,
     ip_list: Vec<String>,
@@ -133,7 +135,7 @@ impl Displayinfo for InfoResults {
         let apis = port::ApiKeys{
             fofa:api_keys.fofa_key,
             // quake:api_keys.quake_key,
-            yt:api_keys.yt_key,
+            // yt:api_keys.yt_key,
             shodan:api_keys.shodan_key,
             zoomeye:api_keys.zoomeye_key,
         };
@@ -184,7 +186,72 @@ impl InfoResults {
         self.ip_list.extend(other.ip_list);
     }
 }
+#[async_trait]
+impl InfoFetcher for InfoZone{
+    async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+        let url = "https://0.zone/api/data/";
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let q = format!("root_domain={}",domain);
+        let data = json!({
+        "query": q,
+        "query_type": "domain",
+        "page": 1,
+        "pagesize": 100,
+        "zone_key_id": keys.zone_key
+    });
+        let response = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .json(&data)
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            outprint::Print::errprint(format!("Zone error status code: {}", response.status()).as_str());
+            return Ok(InfoResults::new());
+        }
 
+        let mut results = InfoResults::new();
+        let json_s: Value = response.json().await?;
+        if let Some(data_array) = json_s["data"].as_array() {
+            for entry in data_array {
+                let domain = entry["domain"].as_str().unwrap_or("");
+                let ip = entry["msg"]["ip"].as_str().unwrap_or("");
+                results.domain_list.push(domain.to_string());
+                results.ip_list.push(ip.to_string());
+                // println!("{}|{}", domain, ip);
+            }
+        }
+        let data2 = json!({
+        "query": domain,
+        "query_type": "site",
+        "page": 1,
+        "pagesize": 100,
+        "zone_key_id": "1a77af65e7546736ce43f5e85c59fabf"
+    });
+        let response2 = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .json(&data2)
+            .send()
+            .await?;
+
+
+        // 解析 JSON 响应
+        let json_s: Value = response2.json().await?;
+
+        // 遍历数据并打印 IP
+        if let Some(data_array) = json_s["data"].as_array() {
+            for entry in data_array {
+                let ip = entry["ip"].as_str().unwrap_or("");
+                results.ip_list.push(ip.to_string());
+            }
+        }
+
+        outprint::Print::infoprint(format!("Zone found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        Ok(results)
+    }
+
+}
 #[async_trait]
 impl InfoFetcher for InfoRobtex {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
@@ -269,7 +336,7 @@ impl InfoFetcher for InfoMyssl {
 impl InfoFetcher for InfoDnsgrep {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://www.dnsgrep.cn/subdomain/{}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "Cookie",
@@ -319,7 +386,7 @@ impl InfoFetcher for InfoDnsgrep {
 impl InfoFetcher for InfoBevigil {
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("http://osint.bevigil.com/api/{}/subdomains/", domain);
-        let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "X-Access-Token",
@@ -570,7 +637,7 @@ impl InfoFetcher for InfoAlienvault{
 impl InfoFetcher for InfoQuake{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = "https://quake.360.net/api/v3/search/quake_service";
-        let client = Client::builder().timeout(Duration::from_secs(20)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "x-quaketoken",
@@ -608,7 +675,7 @@ impl InfoFetcher for InfoQuake{
 #[async_trait]
 impl InfoFetcher for InfoZoomeye{
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let url = format!("https://api.zoomeye.hk/domain/search?q={}&type=1&page=1",domain);
+        let url = format!("https://api.zoomeye.ai/domain/search?q={}&type=1&page=1",domain);
         let mut headers = HeaderMap::new();
         headers.insert(
             "api-key",
@@ -1509,6 +1576,7 @@ pub async fn infomain(arg: HashMap<&str, String>, domain: &str, custom_config_pa
         Arc::new(InfoDnsgrep),
         Arc::new(InfoMyssl),
         Arc::new(InfoRobtex),
+        Arc::new(InfoZone),
     ];
     let threads = arg.get("threads").and_then(|t| t.parse::<usize>().ok()).unwrap_or(300);
     let combined_results = Arc::new(Mutex::new(InfoResults::new()));

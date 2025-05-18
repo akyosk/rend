@@ -32,3 +32,5 @@ dnsdump_key = ""
 bevigil_key = ""
 # https://freeapi.robtex.com/
 robtex_key = ""
+# https://0.zone/
+zone_key = ""

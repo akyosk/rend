@@ -5,6 +5,9 @@ impl Print{
         // println!("{}",format!("[!][{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ]", domain, status, lens, title.trim()).blue());
         println!("{}",format!("[!][{}] [ {} ] | [ {} ] | [ {} ]", domain, status, lens, title.trim()).blue());
     }
+    pub fn unauthorizedprint(data:&str){
+        println!("{}",format!("[Unauthorized] {} [401]",data).blue());
+    }
     pub fn vuln_bypass(domain: &str, status: &u64, lens: &u64, title: &str,ip: Option<&str>){
         // println!("{}",format!("{}[{}] [ Status -> {} ] | [ Len -> {} ] | [ Title -> {} ] | [IP -> {}]","[!]".red(), domain, status, lens, title.trim(),ip.unwrap_or("N/A")).blue().bold());
         println!("{}",format!("{}[{}] [ {} ] | [ {} ] | [ {} ] | [{}]","[!]".red(), domain, status, lens, title.trim(),ip.unwrap_or("N/A")).blue().bold());
