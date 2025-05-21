@@ -140,14 +140,10 @@ async fn scan_urls_with_semaphore<S: Scan + Sync + Send + 'static>(
 
 pub async fn vulnmain(threads:usize,client: Client,urls:Vec<String>) -> Result<(), Box<dyn Error + Send + Sync>> {
     let rce_payloads = vec![
-        "cat /etc/passwd".to_string(),
-        r#"type %windir%\win.ini"#.to_string(),
+        r#"type %windir%\win.ini || cat /etc/passwd"#.to_string(),
     ];
     let sql_payloads = vec![
-        "') OR (78786=78678 --".to_string(),
-        "'\" AND 78786=78678 --+a".to_string(),
-        "1 AND 78786=78678 --+a".to_string(),
-        "' OR 1=CAST(CHAR(65) AS INT) --".to_string(),
+        "%E9%8E%88%27%22%5C%28".to_string(),
     ];
     let file_read_payloads = vec![
         r#"\c$\windows\win.ini"#.to_string(),

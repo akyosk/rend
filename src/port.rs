@@ -77,7 +77,78 @@ trait InfoPort {
 struct ShodanIp;
 struct FofaIp;
 struct ZoomeyeIp;
+// struct YtIp;
+// struct QuakeIp;
 
+// #[async_trait]
+// impl InfoPort for QuakeIp {
+//     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
+//         let url = "https://quake.360.net/api/v3/search/quake_service";
+//         let mut headers = HeaderMap::new();
+//         headers.insert("x-quaketoken", api_keys.quake.parse()?);
+//         let query = json!({
+//             "query": format!("ip: {}", ip), "start": 0, "size": 100,
+//         });
+//         let mut results = InfoPortRes::new();
+//         let response = client.post(url).json(&query).headers(headers).send().await?;
+//         if !response.status().is_success() {
+//             return Ok(results);
+//         }
+//
+//         let json_response = response.json::<Value>().await?;
+//         if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
+//             Ok(results)
+//         } else {
+//             let empty_vec = vec![];
+//             let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
+//             data_array.iter().for_each(|data| {
+//                 if let Some(port) = data.get("port") {
+//                     if let Some(n) = port.as_u64() {
+//                         results.push(format!("{}:{}", ip, n.to_string()));
+//                     }
+//                 }
+//             });
+//             if results.ports.len() > 100 {
+//                 Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
+//                 results = InfoPortRes::new();
+//             }
+//             Ok(results)
+//         }
+//     }
+// }
+
+// #[async_trait]
+// impl InfoPort for YtIp {
+//     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
+//         let query = STANDARD.encode(format!("ip=\"{}\"", ip));
+//         let url = format!(
+//             "https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",
+//             api_keys.yt, query
+//         );
+//         let mut headers = HeaderMap::new();
+//         headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
+//         let response = client.get(&url).headers(headers).send().await?;
+//         let mut results = InfoPortRes::new();
+//         if !response.status().is_success() {
+//             return Ok(results);
+//         }
+//         let json_response = response.json::<Value>().await?;
+//         if let Some(data) = json_response.get("data").and_then(|d| d.get("arr")).and_then(|d| d.as_array()) {
+//             data.iter().for_each(|data| {
+//                 if let Some(port) = data.get("port") {
+//                     if let Some(n) = port.as_u64() {
+//                         results.push(format!("{}:{}", ip, n.to_string()));
+//                     }
+//                 }
+//             });
+//         }
+//         if results.ports.len() > 100 {
+//             Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
+//             results = InfoPortRes::new();
+//         }
+//         Ok(results)
+//     }
+// }
 #[async_trait]
 impl InfoPort for ZoomeyeIp {
     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
@@ -474,7 +545,10 @@ pub async fn portmain(
     Print::infoprint(format!("Received {} IP addresses in total", ips.len()).as_str());
 
     let non_cdn_ips = filter_cdn_ips(ips).await;
-
+    // 移除空字符串（或其他定義的空值）
+    let non_cdn_ips: Vec<_> = non_cdn_ips.into_iter()
+        .filter(|ip| !ip.is_empty()) // 過濾掉空字符串
+        .collect();
     if non_cdn_ips.is_empty() {
         Print::infoprint("Non-CDN IP addresses not detected, API queries and port scans skipped");
         return Ok(Vec::new());

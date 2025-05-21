@@ -11,6 +11,7 @@ mod vulns;
 mod port;
 mod subdomain;
 mod pocscan;
+mod icpscan;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

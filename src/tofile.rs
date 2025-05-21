@@ -113,3 +113,17 @@ pub fn other_save_to_file(file_name: &str,other:&str) -> io::Result<()> {
     writeln!(file, "{}", other)?;
     Ok(())
 }
+
+pub fn icp_save_to_file(file_name: &str, domains: &[String]) -> io::Result<()> {
+    // 打开文件（如果文件不存在则创建，存在则追加内容）
+    let mut file = OpenOptions::new()
+        .create(true) // 如果文件不存在则创建
+        .append(true) // 如果文件存在则追加内容
+        .open(file_name)?;
+    writeln!(file, "[ICP]")?;
+    for domain in domains {
+        writeln!(file, "{}", domain)?;
+    }
+
+    Ok(())
+}

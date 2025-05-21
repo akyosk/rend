@@ -199,19 +199,20 @@ struct Cmsck {
 
 impl Cmsck {
     /// 获取目标域名的主页内容
-    pub async fn fetch_homepage(&self, domain: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let url = format!("{}/kindeditor/asp/upload_json.asp?dir=file", domain.trim_end_matches('/')); // 确保域名格式正确
+    pub async fn fetch_homepage(&self, domain: &str) -> Result<(String,String), Box<dyn Error + Send + Sync>> {
+        let url = format!("{}/kindedasaioadsjson", domain.trim_end_matches('/')); // 确保域名格式正确
         let response = self.client.get(&url).send().await?; // 发送 GET 请求
         let status = response.status();
-
+        let resp_url = response.url().to_string();
         // 检查响应状态码
         if !status.is_success() {
-            return Ok("None".to_string());
+            return Ok(("None".to_string(), domain.to_string()));
         }
 
         // 获取 HTML 文本
         let html_text = response.text().await?;
-        Ok(html_text)
+
+        Ok((html_text,resp_url))
     }
     async fn html_response(&self, url: &str) -> Result<Response, Box<dyn Error + Send + Sync>> {
         Ok(self.client.get(url).send().await?)
@@ -369,6 +370,8 @@ impl Cmsck {
                 self.ckhtml(url.as_str(), &status_as_u64,html_text.as_str(),&filename,None).await?;
             }
 
+
+
         }
         Ok(())
 
@@ -388,12 +391,27 @@ impl Cmsck {
 
     }
 
-    pub async fn scan_with_path_t(&self, domain: &str, path: &str, homepage_hash: &[u8], homepage_length: usize,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn scan_with_path_t(&self, domain: &str, path: &str, homepage_hash: &[u8], homepage_length: usize,homepage_url:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}/{}", domain.trim_end_matches('/'), path.trim_start_matches('/'));
         let response = self.client.get(&url).send().await?;
         let status = response.status(); // 先获取状态码
+        let resp_url = response.url().as_str();
+        if resp_url == homepage_url {
+            return Ok(());
+        }
+        if resp_url.contains("=") && resp_url.contains(homepage_url) {
+            return Ok(());
+        }
         let html_text = response.text().await?; // 再提取文本内容
+        if !status.is_success() {
+            return Ok(());
+        }
+
+
+        if html_text.clone().contains("404 Not Found") || html_text.clone().contains("\"code\":404,\"msg\":") {
+            return Ok(());
+        }
         // 检查状态码
         if status.as_u16() == 403{
             self.bypass_list.push(url.to_string()).await;
@@ -403,9 +421,7 @@ impl Cmsck {
             let status_as_u64 = status.as_u16() as u64;
             self.ckhtml(&url, &status_as_u64,html_text.as_str(),filename,None).await?;
         }
-        if !status.is_success() {
-            return Ok(());
-        }
+
 
         // 对比哈希值
         let current_hash = Sha256_sha2::digest(html_text.as_bytes());
@@ -417,6 +433,7 @@ impl Cmsck {
         if html_text.len() == homepage_length {
             return Ok(());
         }
+
         let status_as_u64 = status.as_u16() as u64;
         self.ckhtml(&url, &status_as_u64,html_text.as_str(),filename,None).await?;
         let _ = editor_urls_save_to_file(filename,&url);
@@ -538,9 +555,10 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
         let filename = Arc::new(filename.to_string());
         for domain in ok_list_urls {
             let paths = Arc::clone(&paths); // 克隆 `Arc` 引用计数
-            let homepage_html = match crawer.fetch_homepage(&domain).await {
+            let (homepage_html, homepage_url) = match crawer.fetch_homepage(&domain).await {
                 Ok(content) => content,
                 Err(_e) => {
+                    // eprintln!("Failed to fetch homepage for {}: {}", domain, e);
                     continue;
                 }
             };
@@ -554,11 +572,12 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
                 let domain = domain.clone(); // 克隆 domain，确保独立
                 let homepage_hash = homepage_hash.clone(); // 克隆主页哈希值
                 let homepage_length = homepage_length; // 直接传递长度（无需克隆）
+                let homepage_url = homepage_url.clone();
                 let filename = Arc::clone(&filename);
                 let task = tokio::spawn(async move {
                     let _permit = semaphore.acquire().await;
                     // let filenames = filenames.clone();
-                    if let Err(_e) = crawer.scan_with_path_t(&domain, &path, &homepage_hash, homepage_length,&filename).await {
+                    if let Err(_e) = crawer.scan_with_path_t(&domain, &path, &homepage_hash, homepage_length,&homepage_url,&filename).await {
                         // eprintln!("Error during ok_list path scan: {}", e);
                     }
                 });
@@ -646,7 +665,17 @@ pub async fn cmsmain(filename:&str,threads: usize,client: Client,domains: Vec<St
     }
     outprint::Print::bannerprint(format!("A total of {} URLs with parameters were found",rescraw_locked.rt().len()).as_str());
     #[allow(dead_code)]
-    let res = rescraw_locked.rt();
+    let mut res = rescraw_locked.rt();
+
+    fn filter_domains(res: &mut Vec<String>, pass_domain: &[&str]) {
+        res.retain(|s| !pass_domain.iter().any(|&domain| s.contains(domain)));
+    }
+    // 过滤res
+    let pass_domain: Vec<&str> = otherset.pass_domain.iter().map(|s| s.as_str()).collect();
+    filter_domains(&mut res, &pass_domain);
+
+    // // 输出结果
+    // println!("过滤后的res: {:?}", res);
 
     tofile::urls_save_to_file(&filename, &res.clone())?;
 

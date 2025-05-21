@@ -22,7 +22,7 @@ use tokio::sync::Semaphore;
 // 在文件顶部添加以下引入
 use base64::engine::Engine as _;
 use base64::engine::general_purpose::STANDARD;
-
+use crate::icpscan::icpmain;
 
 #[async_trait]
 trait InfoFetcher{
@@ -52,13 +52,13 @@ pub struct Config {
 #[derive(Debug, Deserialize,Clone)]
 pub struct ApiKeys {
     fofa_key: String,
-    quake_key: String,
+    pub(crate) quake_key: String,
     zoomeye_key: String,
     daydaymap_key: String,
     shodan_key: String,
     securitytrails_key: String,
     hunter_key: String,
-    yt_key: String,
+    pub(crate) yt_key: String,
     virustotal_key: String,
     viewdns_key: String,
     binaryedge_key: String,
@@ -67,7 +67,7 @@ pub struct ApiKeys {
     dnsdump_key: String,
     bevigil_key:String,
     robtex_key:String,
-    zone_key:String,
+    pub(crate) zone_key:String,
 }
 impl Config {
     pub fn from_default() -> Result<Self, Box<dyn Error>> {
@@ -121,12 +121,38 @@ struct InfoZone;
 struct InfoResults{
     domain_list: Vec<String>,
     ip_list: Vec<String>,
+    icp_list: Vec<String>,
 }
 #[async_trait]
 impl Displayinfo for InfoResults {
     async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
-        outprint::Print::infoprint("Start organizing data");
         let filename = format!("{}.txt",domian.replace('.', "_"));
+        let mut icps = self.icp_list.clone();
+        // println!("{}",icps.len());
+        if !icps.is_empty() {
+            icps.retain(|x| !x.is_empty());
+            icps.sort();
+            icps.dedup();
+            // println!("{:?}",icps);
+            outprint::Print::infoprint(format!("Found {} ICP information", icps.len()).as_str());
+            outprint::Print::infoprint("Start tracing ICP information");
+            match icpmain(&icps, api_keys.clone()).await {
+                Ok((ips, hostnames)) => {
+                    self.domain_list.extend(hostnames);
+                    self.ip_list.extend(ips);
+                    let _ = tofile::icp_save_to_file(&filename, &icps).map_err(|e| {
+                        outprint::Print::errprint(format!("Failed to save ICPs to file: {}", e).as_str());
+                        e
+                    });
+                    outprint::Print::bannerprint(format!("ICP results saved to {}",&filename).as_str())
+                }
+                Err(_e) => {
+                    // outprint::Print::errprint(format!("icpmain failed: {}", e).as_str());
+                }
+            }
+        }
+        outprint::Print::infoprint("Start organizing data");
+
         let mut domain_list = self.domain_list.clone();
         let mut ip_list = self.ip_list.clone();
         let mut ip_port_list = vec![];
@@ -176,6 +202,7 @@ impl InfoResults {
         InfoResults{
             domain_list:vec![],
             ip_list:vec![],
+            icp_list:vec![],
         }
     }
     fn empty(&self) -> bool{
@@ -184,6 +211,7 @@ impl InfoResults {
     fn merge(&mut self, other: InfoResults) {
         self.domain_list.extend(other.domain_list);
         self.ip_list.extend(other.ip_list);
+        self.icp_list.extend(other.icp_list);
     }
 }
 #[async_trait]
@@ -634,8 +662,8 @@ impl InfoFetcher for InfoAlienvault{
 
 }
 #[async_trait]
-impl InfoFetcher for InfoQuake{
-    async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
+impl InfoFetcher for InfoQuake {
+    async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = "https://quake.360.net/api/v3/search/quake_service";
         let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
         let mut headers = HeaderMap::new();
@@ -644,32 +672,57 @@ impl InfoFetcher for InfoQuake{
             keys.quake_key.parse()?,
         );
         let query = json!({
-            "query": format!("domain: {}", domain), "start": 0, "size": 100,
+            "query": format!("domain: {}", domain),
+            "start": 0,
+            "size": 100,
         });
         let response = client.post(url).json(&query).headers(headers).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Quake error status code: {}", response.status()).as_str());
-            return Ok(InfoResults::new())
+            return Ok(InfoResults::new());
         }
         let json_response = response.json::<Value>().await?;
         if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
             if let Some(message) = json_response.get("message").and_then(|err| err.as_str()) {
                 outprint::Print::errprint(message);
             }
-            Ok(InfoResults::new())
-        }else {
-            let empty_vec = vec![];
-            let mut results = InfoResults::new();
-            let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
-            data_array.iter().for_each(|data| {
-                if let (Some(domain), Some(ip)) = (data.get("domain").and_then(|domain| domain.as_str()), data.get("ip").and_then(|ip| ip.as_str())) {
-                    results.domain_list.push(String::from(domain));
-                    results.ip_list.push(String::from(ip));
-                }
-            });
-            outprint::Print::infoprint(format!("Quake found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
-            Ok(results)
+            return Ok(InfoResults::new());
         }
+
+        let empty_vec = vec![];
+        let mut results = InfoResults::new();
+        let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
+        data_array.iter().for_each(|data| {
+            if let (Some(domain), Some(ip)) = (
+                data.get("domain").and_then(|domain| domain.as_str()),
+                data.get("ip").and_then(|ip| ip.as_str()),
+            ) {
+                results.domain_list.push(String::from(domain));
+                results.ip_list.push(String::from(ip));
+
+                // 提取 icp.service.http.icp.main_licence.unit
+                if let Some(unit) = data
+                    .get("service")
+                    .and_then(|service| service.get("http"))
+                    .and_then(|http| http.get("icp"))
+                    .and_then(|icp| icp.get("main_licence"))
+                    .and_then(|main_licence| main_licence.get("unit"))
+                    .and_then(|unit| unit.as_str())
+                {
+                    results.icp_list.push(String::from(unit));
+                }
+            }
+        });
+
+        outprint::Print::infoprint(
+            format!(
+                "Quake found Domain {} | found IP {} | found ICP {}",
+                results.domain_list.len(),
+                results.ip_list.len(),
+                results.icp_list.len()
+            ).as_str(),
+        );
+        Ok(results)
     }
 }
 #[async_trait]
@@ -872,15 +925,18 @@ impl InfoFetcher for InfoYT {
         }
         let json_response = response.json::<Value>().await?;
         let mut results = InfoResults::new();
+        // println!("{:?}",json_response);
         if let Some(data) = json_response.get("data").and_then(|d| d.get("arr")).and_then(|d| d.as_array()) {
             data.iter().for_each(|data| {
-                if let (Some(domain),Some(ip)) = (data.get("domain").and_then(|o| o.as_str()),data.get("ip").and_then(|i| i.as_str())) {
+                if let (Some(domain),Some(ip),Some(company)) = (data.get("domain").and_then(|o| o.as_str()),data.get("ip").and_then(|i| i.as_str()),data.get("company").and_then(|c| c.as_str())) {
                     results.domain_list.push(String::from(domain));
                     results.ip_list.push(String::from(ip));
+                    // println!("{}",company.to_string());
+                    results.icp_list.push(String::from(company));
                 }
             });
         }
-        outprint::Print::infoprint(format!("YT-Hunter found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        outprint::Print::infoprint(format!("YT-Hunter found Domain {} | found IP {} | found ICP {}",results.domain_list.len(), results.ip_list.len(),results.icp_list.len()).as_str());
         Ok(results)
     }
 }
@@ -1624,6 +1680,7 @@ pub async fn infomain(arg: HashMap<&str, String>, domain: &str, custom_config_pa
     }
 
     let mut combined_results = combined_results.lock().await;
+
     if !combined_results.domain_list.is_empty() || !combined_results.ip_list.is_empty() {
         let display_domain = domains.first().unwrap_or(&"combined_results".to_string()).clone();
         combined_results.display(&display_domain, threads, client, api_keys, other_content).await;
