@@ -122,11 +122,17 @@ struct InfoResults{
     domain_list: Vec<String>,
     ip_list: Vec<String>,
     icp_list: Vec<String>,
+    cdn_list: Vec<String>,
 }
 #[async_trait]
 impl Displayinfo for InfoResults {
     async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
         let filename = format!("{}.txt",domian.replace('.', "_"));
+        let mut cdns = self.cdn_list.clone();
+        cdns.retain(|x| !x.is_empty());
+        cdns.sort();
+        cdns.dedup();
+
         let mut icps = self.icp_list.clone();
         // println!("{}",icps.len());
         if !icps.is_empty() {
@@ -156,8 +162,10 @@ impl Displayinfo for InfoResults {
         let mut domain_list = self.domain_list.clone();
         let mut ip_list = self.ip_list.clone();
         let mut ip_port_list = vec![];
+        ip_list.retain(|x| !x.is_empty());
         ip_list.sort();
         ip_list.dedup();
+        ip_list.retain(|x| !cdns.contains(x));
         let apis = port::ApiKeys{
             fofa:api_keys.fofa_key,
             // quake:api_keys.quake_key,
@@ -174,7 +182,7 @@ impl Displayinfo for InfoResults {
                 Err(e) => outprint::Print::infoprint(format!("Error saving results: {}",e).as_str()),
             }
         }
-
+        domain_list.retain(|x| !x.is_empty());
         domain_list.sort();
         domain_list.dedup();
         let pass_domain = &otherset.pass_domain;
@@ -203,6 +211,7 @@ impl InfoResults {
             domain_list:vec![],
             ip_list:vec![],
             icp_list:vec![],
+            cdn_list:vec![],
         }
     }
     fn empty(&self) -> bool{
@@ -212,6 +221,7 @@ impl InfoResults {
         self.domain_list.extend(other.domain_list);
         self.ip_list.extend(other.ip_list);
         self.icp_list.extend(other.icp_list);
+        self.cdn_list.extend(other.cdn_list);
     }
 }
 #[async_trait]
@@ -710,6 +720,22 @@ impl InfoFetcher for InfoQuake {
                     .and_then(|unit| unit.as_str())
                 {
                     results.icp_list.push(String::from(unit));
+                }
+                // 检查 CDN 并输出对应 IP
+                if let Some(components) = data.get("components").and_then(|c| c.as_array()) {
+                    for component in components {
+                        if let Some(product_types) = component.get("product_type").and_then(|pt| pt.as_array()) {
+                            for product_type in product_types {
+                                if let Some(pt_str) = product_type.as_str() {
+                                    let pt_upper = pt_str.to_uppercase(); // 缓存大写字符串
+                                    if pt_upper.contains("CDN") || pt_upper.contains("扫描欺骗") {
+                                        results.cdn_list.push(String::from(ip));
+                                        // println!("IP {} is cdn", ip);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         });

@@ -13,6 +13,10 @@ excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", "
 
 # 定义域名黑名单 爬取过程中忽略的名单
 pass_domain = [
+    "gitee.com",
+    "laravel.com",
+    ".4399.com",
+    ".layui.com",
     "xcp-ng.org",
     ".archive.org",
     ".apache.org",
