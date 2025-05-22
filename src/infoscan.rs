@@ -142,6 +142,7 @@ impl Displayinfo for InfoResults {
             // println!("{:?}",icps);
             outprint::Print::infoprint(format!("Found {} ICP information", icps.len()).as_str());
             outprint::Print::infoprint("Start tracing ICP information");
+
             match icpmain(&icps, api_keys.clone()).await {
                 Ok((ips, hostnames)) => {
                     self.domain_list.extend(hostnames);
@@ -165,7 +166,12 @@ impl Displayinfo for InfoResults {
         ip_list.retain(|x| !x.is_empty());
         ip_list.sort();
         ip_list.dedup();
-        ip_list.retain(|x| !cdns.contains(x));
+        if !cdns.is_empty() {
+            outprint::Print::infoprint("Start preliminary CDN filtering through CDN and fraudulent IP lists");
+            ip_list.retain(|x| !cdns.contains(x));
+            outprint::Print::infoprint(format!("Successfully filtered out {} CDNs and fraudulent IPs", &cdns.len()).as_str());
+        }
+
         let apis = port::ApiKeys{
             fofa:api_keys.fofa_key,
             // quake:api_keys.quake_key,
