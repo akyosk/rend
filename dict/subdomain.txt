@@ -175,6 +175,7 @@ admin-prod
 prod
 prod-admin
 devadmin
+es
 testadmin
 admin-test
 prodadmin

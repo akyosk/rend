@@ -7,19 +7,13 @@ use base64::engine::general_purpose::STANDARD;
 use futures::future::try_join_all;
 use std::string::String;
 use futures::future::BoxFuture;
-
-// mod infoscan {
-//     #[derive(Clone)]
-//     pub struct ApiKeys {
-//         pub quake_key: String,
-//         pub yt_key: String,
-//         pub zone_key: String,
-//     }
-// }
-
 use crate::outprint;
 use crate::infoscan::ApiKeys;
-
+fn clean_and_dedup(list: &mut Vec<String>) {
+    list.retain(|x| !x.is_empty());
+    list.sort();
+    list.dedup();
+}
 pub async fn zone(icp: &str, keys: &ApiKeys) -> Result<(Vec<String>, Vec<String>), Box<dyn Error + Send + Sync>> {
     let url = "https://0.zone/api/data/";
     let client = Client::builder().build()?;
@@ -64,6 +58,13 @@ pub async fn zone(icp: &str, keys: &ApiKeys) -> Result<(Vec<String>, Vec<String>
 
         }
     }
+    hostnames.retain(|x| !x.is_empty());
+    hostnames.sort();
+    hostnames.dedup();
+    clean_and_dedup(&mut ips);
+    // ips.retain(|x| !x.is_empty());
+    // ips.sort();
+    // ips.dedup();
     outprint::Print::infoprint(
         format!(
             "Zone found Domain {} | found IP {}",
@@ -84,7 +85,7 @@ pub async fn quake(domain: &str, keys: &ApiKeys) -> Result<(Vec<String>, Vec<Str
         keys.quake_key.parse()?,
     );
     let query = json!({
-        "query": format!("icp_keywords: {}", domain),
+        "query": format!("icp_keywords: \"{}\"", domain),
         "start": 0,
         "size": 100,
     });
@@ -114,7 +115,14 @@ pub async fn quake(domain: &str, keys: &ApiKeys) -> Result<(Vec<String>, Vec<Str
             ips.push(ip.to_string());
         }
     });
-
+    clean_and_dedup(&mut ips);
+    clean_and_dedup(&mut hostnames);
+    // hostnames.retain(|x| !x.is_empty());
+    // hostnames.sort();
+    // hostnames.dedup();
+    // ips.retain(|x| !x.is_empty());
+    // ips.sort();
+    // ips.dedup();
     outprint::Print::infoprint(
         format!(
             "Quake found Domain {} | found IP {}",
@@ -154,10 +162,19 @@ pub async fn yt_hunter(domain: &str, keys: &ApiKeys) -> Result<(Vec<String>, Vec
                 data.get("ip").and_then(|i| i.as_str()),
             ) {
                 hostnames.push(domain.to_string());
+
                 ips.push(ip.to_string());
             }
         });
     }
+    clean_and_dedup(&mut ips);
+    clean_and_dedup(&mut hostnames);
+    // hostnames.retain(|x| !x.is_empty());
+    // hostnames.sort();
+    // hostnames.dedup();
+    // ips.retain(|x| !x.is_empty());
+    // ips.sort();
+    // ips.dedup();
     outprint::Print::infoprint(
         format!("YT-Hunter found Domain {} | found IP {}", hostnames.len(), ips.len()).as_str(),
     );
@@ -190,10 +207,12 @@ pub async fn icpmain(
     }
 
     // 去重
-    all_ips.sort();
-    all_ips.dedup();
-    all_hostnames.sort();
-    all_hostnames.dedup();
+    // all_ips.sort();
+    // all_ips.dedup();
+    // all_hostnames.sort();
+    // all_hostnames.dedup();
+    clean_and_dedup(&mut all_ips);
+    clean_and_dedup(&mut all_hostnames);
 
     // 输出合并后的结果
     outprint::Print::infoprint(

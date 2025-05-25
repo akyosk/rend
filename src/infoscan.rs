@@ -40,9 +40,10 @@ pub struct OtherSets {
     pub(crate) excluded_extensions: Vec<String>,
     pub(crate) excluded_patterns: Vec<String>,
     pub(crate) pass_domain: Vec<String>,
-    // pub(crate) port_random_max: u16,
-    // pub(crate) port_random_min: u16,
-    // pub(crate) port_max: u16,
+    pub(crate) port_random_max: u16,
+    pub(crate) port_random_min: u16,
+    pub(crate) attack_port_number: usize,
+    pub(crate) scan_port_max: u64,
 }
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -124,6 +125,7 @@ struct InfoResults{
     icp_list: Vec<String>,
     cdn_list: Vec<String>,
 }
+
 #[async_trait]
 impl Displayinfo for InfoResults {
     async fn display(&mut self, domian:&str, threads: usize, client: Client, api_keys: ApiKeys, otherset:OtherSets) {
@@ -142,6 +144,7 @@ impl Displayinfo for InfoResults {
             // println!("{:?}",icps);
             outprint::Print::infoprint(format!("Found {} ICP information", icps.len()).as_str());
             outprint::Print::infoprint("Start tracing ICP information");
+
             match icpmain(&icps, api_keys.clone()).await {
                 Ok((ips, hostnames)) => {
                     self.domain_list.extend(hostnames);
@@ -165,7 +168,12 @@ impl Displayinfo for InfoResults {
         ip_list.retain(|x| !x.is_empty());
         ip_list.sort();
         ip_list.dedup();
-        ip_list.retain(|x| !cdns.contains(x));
+        if !cdns.is_empty() {
+            outprint::Print::infoprint("Start preliminary CDN filtering through CDN and fraudulent IP lists");
+            ip_list.retain(|x| !cdns.contains(x));
+            outprint::Print::bannerprint(format!("Successfully filtered out {} CDNs and fraudulent IPs", &cdns.len()).as_str());
+        }
+
         let apis = port::ApiKeys{
             fofa:api_keys.fofa_key,
             // quake:api_keys.quake_key,
@@ -174,7 +182,7 @@ impl Displayinfo for InfoResults {
             zoomeye:api_keys.zoomeye_key,
         };
         outprint::Print::infoprint("Start collecting IP port information");
-        if let Ok(res) = port::portmain(&ip_list,&filename,client.clone(),apis).await{
+        if let Ok(res) = port::portmain(&ip_list,&filename,client.clone(),apis, &otherset).await{
             ip_port_list.extend(res.clone());
             outprint::Print::bannerprint(format!("A total of {} IP port information were obtained",&res.len()).as_str());
             match tofile::ip_urls_save_to_file(&filename,&res) {
@@ -182,6 +190,7 @@ impl Displayinfo for InfoResults {
                 Err(e) => outprint::Print::infoprint(format!("Error saving results: {}",e).as_str()),
             }
         }
+
         domain_list.retain(|x| !x.is_empty());
         domain_list.sort();
         domain_list.dedup();
@@ -213,6 +222,7 @@ impl InfoResults {
             icp_list:vec![],
             cdn_list:vec![],
         }
+
     }
     fn empty(&self) -> bool{
         self.domain_list.is_empty() || self.ip_list.is_empty()
@@ -222,6 +232,23 @@ impl InfoResults {
         self.ip_list.extend(other.ip_list);
         self.icp_list.extend(other.icp_list);
         self.cdn_list.extend(other.cdn_list);
+    }
+    fn clean_all(&mut self) {
+        self.domain_list.retain(|x| !x.is_empty());
+        self.domain_list.sort();
+        self.domain_list.dedup();
+
+        self.ip_list.retain(|x| !x.is_empty());
+        self.ip_list.sort();
+        self.ip_list.dedup();
+
+        self.icp_list.retain(|x| !x.is_empty());
+        self.icp_list.sort();
+        self.icp_list.dedup();
+
+        self.cdn_list.retain(|x| !x.is_empty());
+        self.cdn_list.sort();
+        self.cdn_list.dedup();
     }
 }
 #[async_trait]
@@ -284,7 +311,7 @@ impl InfoFetcher for InfoZone{
                 results.ip_list.push(ip.to_string());
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Zone found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -336,6 +363,7 @@ impl InfoFetcher for InfoRobtex {
                 // println!("{}", rrdata);
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Robtex found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -366,6 +394,7 @@ impl InfoFetcher for InfoMyssl {
                 }
             }
         };
+        results.clean_all();
         outprint::Print::infoprint(format!("Myssl found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -415,7 +444,7 @@ impl InfoFetcher for InfoDnsgrep {
                 }
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Dnsgrep found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -448,6 +477,7 @@ impl InfoFetcher for InfoBevigil {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Bevigil found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -493,6 +523,7 @@ impl InfoFetcher for InfoUrlscan {
                 }
             }
         }
+        res_results.clean_all();
         outprint::Print::infoprint(format!("Urlscan found Domain {} | found IP {}",res_results.domain_list.len(), res_results.ip_list.len()).as_str());
         Ok(res_results)
     }
@@ -529,6 +560,7 @@ impl InfoFetcher for InfoThreatcrowd {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Threatcrowd found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -568,7 +600,7 @@ impl InfoFetcher for InfoDnsarchive{
                 results.ip_list.push(String::from(res_ip));
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Dnsarchive found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -601,6 +633,7 @@ impl InfoFetcher for InfoIP138 {
                 results.domain_list.push(domain);
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("IP138 found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -609,8 +642,12 @@ impl InfoFetcher for InfoIP138 {
 #[async_trait]
 impl InfoFetcher for InfoFofa{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        // 修改编码代码
-        let base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
+        let base64_str;
+        if domain.len() <= 8 {
+            base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
+        } else {
+            base64_str = STANDARD.encode(format!("\"{}\"", domain));
+        }
         // let base64_str = base64::encode(format!("domain={}", domain));
         let url = format!("https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true", keys.fofa_key,base64_str);
         let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
@@ -629,13 +666,17 @@ impl InfoFetcher for InfoFofa{
         let data_array = json_response.get("results").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
 
         data_array.iter().for_each(|data| {
+            // println!("{}",data);
             if let (Some(domain), Some(ip)) = (data.get(0), data.get(1)) {
                 if let (Some(domain_str), Some(ip_str)) = (domain.as_str(), ip.as_str()) {
                     results.domain_list.push(String::from(domain_str));
                     results.ip_list.push(String::from(ip_str));
+                    // println!("IP {}",  ip_str);
                 }
             }
         });
+        // outprint::Print::infoprint(format!("Fofa found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+        results.clean_all();
         outprint::Print::infoprint(format!("Fofa found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -666,6 +707,7 @@ impl InfoFetcher for InfoAlienvault{
                 }
             }
         });
+        results.clean_all();
         outprint::Print::infoprint(format!("Alienvault found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -724,22 +766,47 @@ impl InfoFetcher for InfoQuake {
                 // 检查 CDN 并输出对应 IP
                 if let Some(components) = data.get("components").and_then(|c| c.as_array()) {
                     for component in components {
-                        if let Some(product_types) = component.get("product_type").and_then(|pt| pt.as_array()) {
+                        // if let Some(product_types) = component.get("product_type").and_then(|pt| pt.as_array()) {
+                        //     for product_type in product_types {
+                        //         if let Some(pt_str) = product_type.as_str() {
+                        //             let pt_upper = pt_str.to_uppercase(); // 缓存大写字符串
+                        //             if pt_upper.contains("CDN") || pt_upper.contains("扫描欺骗") {
+                        //                 results.cdn_list.push(String::from(ip));
+                        //                 // println!("IP {} is cdn", ip);
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        if let (Some(product_types),Some(product_name_cn)) = (
+                            component.get("product_type").and_then(|pt| pt.as_array()),
+                            component.get("product_name_cn").and_then(|ptc| ptc.as_str())
+                        ) {
+                            if product_name_cn.contains("扫描欺骗") ||
+                                product_name_cn.contains("Nullidentd") ||
+                                product_name_cn.contains("KVIrc fake identd") ||
+                                product_name_cn.contains("Cloudflare"){
+                                results.cdn_list.push(String::from(ip));
+                                // println!("IP {} is cdn", ip);
+                                continue;
+                            }
                             for product_type in product_types {
                                 if let Some(pt_str) = product_type.as_str() {
                                     let pt_upper = pt_str.to_uppercase(); // 缓存大写字符串
                                     if pt_upper.contains("CDN") || pt_upper.contains("扫描欺骗") {
                                         results.cdn_list.push(String::from(ip));
                                         // println!("IP {} is cdn", ip);
+                                        break;
+
                                     }
                                 }
                             }
                         }
+
                     }
                 }
             }
         });
-
+        results.clean_all();
         outprint::Print::infoprint(
             format!(
                 "Quake found Domain {} | found IP {} | found ICP {}",
@@ -781,6 +848,12 @@ impl InfoFetcher for InfoZoomeye{
                 }
             }
         });
+        results.domain_list.retain(|x| !x.is_empty());
+        results.domain_list.sort();
+        results.domain_list.dedup();
+        results.ip_list.retain(|x| !x.is_empty());
+        results.ip_list.sort();
+        results.ip_list.dedup();
         outprint::Print::infoprint(format!("Zoomeye found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
 
@@ -826,6 +899,7 @@ impl InfoFetcher for InfoDaydaymap {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Daydaymap found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -878,6 +952,7 @@ impl InfoFetcher for InfoSecuritytrails {
                 }
             })
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Securitytrails found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
 
@@ -903,6 +978,7 @@ impl InfoFetcher for InfoShodan {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Shodan found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -929,6 +1005,7 @@ impl InfoFetcher for InfoHunter {
                 }
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Hunter found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -962,6 +1039,7 @@ impl InfoFetcher for InfoYT {
                 }
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("YT-Hunter found Domain {} | found IP {} | found ICP {}",results.domain_list.len(), results.ip_list.len(),results.icp_list.len()).as_str());
         Ok(results)
     }
@@ -992,7 +1070,7 @@ impl InfoFetcher for InfoVirustotal {
                 }
             });
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Virustotal found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1016,6 +1094,7 @@ impl InfoFetcher for InfoViewDNS {
                 }
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("ViewDNS found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1044,6 +1123,7 @@ impl InfoFetcher for InfoBinaryedge{
 
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Binaryedge found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
 
         Ok(results)
@@ -1073,6 +1153,7 @@ impl InfoFetcher for InfoFullhunt {
             });
 
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Fullhunt found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1096,6 +1177,7 @@ impl InfoFetcher for InfoWhoisxml {
                 }
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Whoisxmlapi found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1170,6 +1252,7 @@ impl InfoFetcher for InfoDnsdump {
                 }
             });
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Dnsdump found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
 
         Ok(results)
@@ -1194,6 +1277,7 @@ impl InfoFetcher for InfoCrt {
                 }
             })
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Crt found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
 
         Ok(results)
@@ -1220,7 +1304,7 @@ impl InfoFetcher for InfoChaziyu {
                 results.domain_list.push(link.trim().to_string());
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Chaziyu found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
 
         Ok(results)
@@ -1245,6 +1329,7 @@ impl InfoFetcher for InfoJldc {
                 }
             })
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Jldc found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
 
         Ok(results)
@@ -1303,7 +1388,7 @@ impl InfoFetcher for InfoSitedossier {
                 results.domain_list.push(req_domain.to_string());
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Sitedossier found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1345,6 +1430,7 @@ impl InfoFetcher for InfoRapiddns{
             let domain_regex = regex::Regex::new(r"^[a-zA-Z0-9][a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}$").unwrap();
             domain_regex.is_match(text)
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Rapiddns found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1374,6 +1460,7 @@ impl InfoFetcher for InfoCertspotter {
                 }
             })
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Certspotter found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1404,6 +1491,7 @@ impl InfoFetcher for InfoHackertarget {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Hackertarget found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1431,7 +1519,7 @@ impl InfoFetcher for InfoArchive {
                 }
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Archive found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1462,7 +1550,7 @@ impl InfoFetcher for InfoDnshistory {
                 results.domain_list.push(domain.as_str().to_string());
             }
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("Dnshistory found Domain {} | found IP {}", results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1497,6 +1585,7 @@ impl InfoFetcher for InfoNetlas {
                 }
             }
         }
+        results.clean_all();
         outprint::Print::infoprint(format!("Netlas found Domain {} | found IP {}", results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }
@@ -1544,7 +1633,7 @@ impl InfoFetcher for InfoC99NL {
             let ip = cap.get(1).unwrap().as_str().trim().to_string();
             results.ip_list.push(ip);
         }
-
+        results.clean_all();
         outprint::Print::infoprint(format!("C99NL found Domain {} | found IP {}", results.domain_list.len(), results.ip_list.len()).as_str());
         Ok(results)
     }

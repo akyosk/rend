@@ -15,6 +15,7 @@ use reqwest::Client;
 use serde_json::Value;
 use reqwest::header::HeaderMap;
 use std::collections::HashSet;
+use crate::infoscan::OtherSets;
 use crate::tofile::other_save_to_file;
 use crate::outprint::Print;
 
@@ -71,87 +72,16 @@ impl InfoPortRes {
 
 #[async_trait]
 trait InfoPort {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>>;
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>>;
 }
 
 struct ShodanIp;
 struct FofaIp;
 struct ZoomeyeIp;
-// struct YtIp;
-// struct QuakeIp;
 
-// #[async_trait]
-// impl InfoPort for QuakeIp {
-//     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-//         let url = "https://quake.360.net/api/v3/search/quake_service";
-//         let mut headers = HeaderMap::new();
-//         headers.insert("x-quaketoken", api_keys.quake.parse()?);
-//         let query = json!({
-//             "query": format!("ip: {}", ip), "start": 0, "size": 100,
-//         });
-//         let mut results = InfoPortRes::new();
-//         let response = client.post(url).json(&query).headers(headers).send().await?;
-//         if !response.status().is_success() {
-//             return Ok(results);
-//         }
-//
-//         let json_response = response.json::<Value>().await?;
-//         if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
-//             Ok(results)
-//         } else {
-//             let empty_vec = vec![];
-//             let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
-//             data_array.iter().for_each(|data| {
-//                 if let Some(port) = data.get("port") {
-//                     if let Some(n) = port.as_u64() {
-//                         results.push(format!("{}:{}", ip, n.to_string()));
-//                     }
-//                 }
-//             });
-//             if results.ports.len() > 100 {
-//                 Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
-//                 results = InfoPortRes::new();
-//             }
-//             Ok(results)
-//         }
-//     }
-// }
-
-// #[async_trait]
-// impl InfoPort for YtIp {
-//     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
-//         let query = STANDARD.encode(format!("ip=\"{}\"", ip));
-//         let url = format!(
-//             "https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",
-//             api_keys.yt, query
-//         );
-//         let mut headers = HeaderMap::new();
-//         headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
-//         let response = client.get(&url).headers(headers).send().await?;
-//         let mut results = InfoPortRes::new();
-//         if !response.status().is_success() {
-//             return Ok(results);
-//         }
-//         let json_response = response.json::<Value>().await?;
-//         if let Some(data) = json_response.get("data").and_then(|d| d.get("arr")).and_then(|d| d.as_array()) {
-//             data.iter().for_each(|data| {
-//                 if let Some(port) = data.get("port") {
-//                     if let Some(n) = port.as_u64() {
-//                         results.push(format!("{}:{}", ip, n.to_string()));
-//                     }
-//                 }
-//             });
-//         }
-//         if results.ports.len() > 100 {
-//             Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
-//             results = InfoPortRes::new();
-//         }
-//         Ok(results)
-//     }
-// }
 #[async_trait]
 impl InfoPort for ZoomeyeIp {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,_scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
         let base64_str = STANDARD.encode(format!("ip=\"{}\" && after=\"2024-05-07\"", ip));
         let url = "https://api.zoomeye.ai/v2/search";
         let mut headers = HeaderMap::new();
@@ -164,13 +94,13 @@ impl InfoPort for ZoomeyeIp {
         let response = client.post(url).headers(headers).json(&payload).send().await?;
         let mut results = InfoPortRes::new();
         if !response.status().is_success() {
-            return Ok(results);
+            return Ok((results, false));
         }
         let json_response = response.json::<Value>().await?;
         let data = match json_response.get("data") {
             Some(data) => data,
             None => {
-                return Ok(InfoPortRes::new());
+                return Ok((InfoPortRes::new(), false));
             }
         };
         let ports: Vec<i64> = data
@@ -189,18 +119,18 @@ impl InfoPort for ZoomeyeIp {
             Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
             results = InfoPortRes::new();
         }
-        Ok(results)
+        Ok((results, false))
     }
 }
 
 #[async_trait]
 impl InfoPort for ShodanIp {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,_scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.shodan.io/shodan/host/{}?key={}", ip, api_keys.shodan);
         let response = client.get(&url).send().await?;
         let mut results = InfoPortRes::new();
         if !response.status().is_success() {
-            return Ok(results);
+            return Ok((results, false));
         }
         let json_response = response.json::<Value>().await?;
         if let Some(ports) = json_response.get("ports").and_then(|p| p.as_array()) {
@@ -212,13 +142,13 @@ impl InfoPort for ShodanIp {
             Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
             results = InfoPortRes::new();
         }
-        Ok(results)
+        Ok((results, false))
     }
 }
 
 #[async_trait]
 impl InfoPort for FofaIp {
-    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<InfoPortRes, Box<dyn Error + Send + Sync>> {
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
         let base64_str = STANDARD.encode(format!("ip={}", ip));
         let url = format!(
             "https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true",
@@ -227,10 +157,15 @@ impl InfoPort for FofaIp {
         let response = client.get(&url).send().await?;
         let mut results = InfoPortRes::new();
         if !response.status().is_success() {
-            return Ok(results);
+            return Ok((results, false));
         }
         let json_response = response.json::<Value>().await?;
         let empty_vec = vec![];
+        let size_number = json_response.get("size").and_then(|data| data.as_u64()).unwrap_or(500);
+        if size_number >= scan_port_max {
+            Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
+            return Ok((results, true));
+        }
         let data_array = json_response.get("results").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
         data_array.iter().for_each(|data| {
             if let Some(ports) = data.get(2) {
@@ -243,7 +178,7 @@ impl InfoPort for FofaIp {
             Print::passprint(format!("The ip {} may be CDN, excluding collection results", ip).as_str());
             results = InfoPortRes::new();
         }
-        Ok(results)
+        Ok((results, false))
     }
 }
 
@@ -541,13 +476,13 @@ pub async fn portmain(
     filename: &str,
     client: Client,
     api_keys: ApiKeys,
+    otherset:&OtherSets
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     Print::infoprint(format!("Received {} IP addresses in total", ips.len()).as_str());
 
     let non_cdn_ips = filter_cdn_ips(ips).await;
-    // 移除空字符串（或其他定義的空值）
     let non_cdn_ips: Vec<_> = non_cdn_ips.into_iter()
-        .filter(|ip| !ip.is_empty()) // 過濾掉空字符串
+        .filter(|ip| !ip.is_empty())
         .collect();
     if non_cdn_ips.is_empty() {
         Print::infoprint("Non-CDN IP addresses not detected, API queries and port scans skipped");
@@ -559,20 +494,97 @@ pub async fn portmain(
     let ips_res = Arc::new(Mutex::new(InfoIPRes::new()));
     let semaphore = Arc::new(Semaphore::new(4));
     let open_ports_map = Arc::new(Mutex::new(Vec::<(String, Vec<u16>)>::new()));
-
-    let shodan_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
     let fofa_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
+    let shodan_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
     let zoomeye_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
 
-    Print::infoprint("Starting API-based port discovery");
+    Print::infoprint("Starting Fofa API-based port discovery");
+    let fofa_fetcher = Arc::new(FofaIp);
+    let mut api_tasks = vec![];
+    let fofa_non_cdn_ips = Arc::new(Mutex::new(non_cdn_ips.clone()));
+
+    // 先执行 Fofa 查询
+    for ip in non_cdn_ips.iter() {
+        let scan_port_max = otherset.scan_port_max.clone();
+        let permit = semaphore.clone();
+        let fetch = Arc::clone(&fofa_fetcher);
+        let client = client.clone();
+        let api_keys = api_keys.clone(); // 克隆 api_keys 以避免移动
+        let ips_res_clone = Arc::clone(&ips_res);
+        let ip_clone = ip.clone();
+        let port_counts = Arc::clone(&fofa_port_counts);
+        let open_ports_map_clone = Arc::clone(&open_ports_map);
+        let fofa_non_cdn_ips_clone = Arc::clone(&fofa_non_cdn_ips);
+
+        let task = tokio::spawn(async move {
+            let _permit = permit.acquire().await.unwrap();
+            match fetch.fetch(&ip_clone, api_keys, &client,scan_port_max).await {
+                Ok((res, is_cdn)) => {
+                    let port_count = res.ports.len();
+                    let mut ips_res = ips_res_clone.lock().await;
+                    ips_res.ips.extend(res.rt());
+
+                    let mut open_ports_map = open_ports_map_clone.lock().await;
+                    let ports: Vec<u16> = res.rt().iter().filter_map(|s| {
+                        let parts: Vec<&str> = s.split(':').collect();
+                        if parts.len() == 2 {
+                            parts[1].parse::<u16>().ok()
+                        } else {
+                            None
+                        }
+                    }).collect();
+                    open_ports_map.push((ip_clone.clone(), ports));
+
+                    let mut port_counts = port_counts.lock().await;
+                    port_counts.push((ip_clone.clone(), port_count));
+
+                    // 如果是 CDN，则从列表中移除
+                    if is_cdn {
+                        let mut fofa_non_cdn_ips = fofa_non_cdn_ips_clone.lock().await;
+                        *fofa_non_cdn_ips = fofa_non_cdn_ips.iter()
+                            .filter(|&x| x != &ip_clone)
+                            .cloned()
+                            .collect();
+                    }
+                }
+                Err(_e) => {}
+            }
+        });
+        api_tasks.push(task);
+    }
+    join_all(api_tasks).await;
+
+    // 输出 Fofa 查询结果
+    let port_counts = fofa_port_counts.lock().await;
+    let total_ports: usize = port_counts.iter().map(|(_, count)| count).sum();
+    let ip_count = port_counts.len();
+    if ip_count > 0 {
+        Print::infoprint(format!("Fofa queried {} IPs, found {} total ports", ip_count, total_ports).as_str());
+    } else {
+        Print::infoprint("Fofa queried no IPs or found no ports".to_string().as_str());
+    }
+
+    // 根据 Fofa 查询结果决定使用哪个 IP 列表
+    let filtered_non_cdn_ips = if total_ports == 0 {
+        // 如果 Fofa 没有找到任何端口，使用原始的 non_cdn_ips
+        Print::infoprint("Fofa found no ports, using original non-CDN IPs for Shodan and Zoomeye".to_string().as_str());
+        non_cdn_ips.clone()
+    } else {
+        // 否则使用 Fofa 过滤后的 IP 列表
+        let result = fofa_non_cdn_ips.lock().await.clone();
+        Print::bannerprint(format!("After Fofa CDN filtering, {} non-CDN IPs remain", result.len()).as_str());
+        result
+    };
+
+    // Shodan 和 Zoomeye 查询
+    Print::infoprint("Starting Shodan and Zoomeye API-based port discovery");
     let fetchers: Vec<(Arc<dyn InfoPort + Send + Sync>, &str, Arc<Mutex<Vec<(String, usize)>>>)> = vec![
-        (Arc::new(FofaIp), "Fofa", fofa_port_counts.clone()),
         (Arc::new(ShodanIp), "Shodan", shodan_port_counts.clone()),
         (Arc::new(ZoomeyeIp), "Zoomeye", zoomeye_port_counts.clone()),
     ];
 
     let mut api_tasks = vec![];
-    for ip in non_cdn_ips.iter() {
+    for ip in filtered_non_cdn_ips.iter() {
         for (fetcher, _fetcher_name, port_counts) in &fetchers {
             let permit = semaphore.clone();
             let fetch = Arc::clone(fetcher);
@@ -582,11 +594,11 @@ pub async fn portmain(
             let ip_clone = ip.clone();
             let port_counts = Arc::clone(port_counts);
             let open_ports_map_clone = Arc::clone(&open_ports_map);
-
+            let scan_port_max = otherset.scan_port_max.clone();
             let task = tokio::spawn(async move {
                 let _permit = permit.acquire().await.unwrap();
-                match fetch.fetch(&ip_clone, api_keys, &client).await {
-                    Ok(res) => {
+                match fetch.fetch(&ip_clone, api_keys, &client,scan_port_max).await {
+                    Ok((res, _)) => {
                         let port_count = res.ports.len();
                         let mut ips_res = ips_res_clone.lock().await;
                         ips_res.ips.extend(res.rt());
@@ -613,7 +625,7 @@ pub async fn portmain(
     }
     join_all(api_tasks).await;
 
-    for (fetcher_name, port_counts) in &[("Shodan", shodan_port_counts), ("Fofa", fofa_port_counts), ("Zoomeye", zoomeye_port_counts)] {
+    for (fetcher_name, port_counts) in &[("Shodan", shodan_port_counts), ("Zoomeye", zoomeye_port_counts)] {
         let port_counts = port_counts.lock().await;
         let total_ports: usize = port_counts.iter().map(|(_, count)| count).sum();
         let ip_count = port_counts.len();
@@ -625,13 +637,13 @@ pub async fn portmain(
     }
     Print::infoprint("API-based port discovery completed");
 
-    if non_cdn_ips.len() <= 30 {
+    if filtered_non_cdn_ips.len() <= otherset.attack_port_number {
         Print::infoprint("Starting full port scan for non-CDN IPs");
         let ips_res_clone = Arc::clone(&ips_res);
         let open_ports_map_clone = Arc::clone(&open_ports_map);
-        let total_ips = non_cdn_ips.len();
+        let total_ips = filtered_non_cdn_ips.len();
 
-        for (index, ip_str) in non_cdn_ips.iter().enumerate() {
+        for (index, ip_str) in filtered_non_cdn_ips.iter().enumerate() {
             Print::infoprint(format!("Scanning IP {}/{}: {}", index + 1, total_ips, ip_str).as_str());
             let ip = IpAddr::from_str(ip_str)?;
             let ip_clone_string = ip_str.clone();
@@ -644,7 +656,7 @@ pub async fn portmain(
                 continue;
             }
 
-            match scan_ports(ip, 1, 65535).await {
+            match scan_ports(ip, otherset.port_random_min, otherset.port_random_max).await {
                 Ok(open_ports) => {
                     let mut ips_res = ips_res_clone_local.lock().await;
                     let ports_string: Vec<String> = open_ports.iter().map(|&p| format!("{}:{}", ip_clone_string, p)).collect();
@@ -662,7 +674,6 @@ pub async fn portmain(
         }
         Print::infoprint("Full port scan completed");
     }
-
 
     let final_res = ips_res.lock().await;
     let unique_ports = final_res.ips.res();
