@@ -1,8 +1,8 @@
 # 定义url链接中的敏感关键词提取，当包含如下关键词会输出
-keywords = ["admin", "login", "system", "administrator", "config", "swagger","forum.php"]
+keywords = ["admin", "login", "system", "administrator", "config", "swagger"]
 # 定义需要排除的爬取路径文件扩展名
-excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif"]
-excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?"]
+excluded_extensions = [".css", ".woff", ".woff2", ".png", ".jpg", ".jpeg", ".ico", ".gif","/wp-"]
+excluded_patterns = [".css?", ".woff?", ".woff2?", ".png?", ".jpg?", ".jpeg?", ".ico?", ".gif?","/wp-"]
 
 ## 端口类
 # 端口爆破，超出指定值则不对每个不执行全端口扫描，只执行api查询,15-30s
@@ -16,6 +16,9 @@ port_random_max = 65535
 
 # 定义域名黑名单 爬取过程中忽略的名单
 pass_domain = [
+    ".vultr.com",
+    ".xdnpro.com",
+    ".xdnpro.me",
     ".bilibili.com",
     ".cctv.com",
     ".bt.cn",

@@ -8,6 +8,7 @@ use tokio::sync::Semaphore;
 use scraper::{Html, Selector};
 use tokio::sync::Mutex;
 use reqwest::header::{HeaderMap, HeaderValue};
+use tokio::time::Duration;
 use crate::outprint;
 use crate::craw;
 use crate::vulns;
@@ -219,13 +220,14 @@ impl Cmsck {
     }
 
     async fn ckhtml(&self,url:&str,status: &u64, html_text: &str,filename:&str,ip:Option<&str>) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let document = Html::parse_document(&html_text); // 解析 HTML 文档
-        let title_selector = Selector::parse("title").unwrap_or_else(|_| Selector::parse("*").unwrap());
-        let title = if let Some(title_element) = document.select(&title_selector).next() {
-            title_element.text().collect::<Vec<_>>().join("")
-        } else {
-            "Not found title".to_string()
-        };
+        // let document = Html::parse_document(&html_text); // 解析 HTML 文档
+        // let title_selector = Selector::parse("title").unwrap_or_else(|_| Selector::parse("*").unwrap());
+        // let title = if let Some(title_element) = document.select(&title_selector).next() {
+        //     title_element.text().collect::<Vec<_>>().join("")
+        // } else {
+        //     "Not found title".to_string()
+        // };
+        let title = self.gettitle(&html_text).await.unwrap_or("Not found title".to_string());
         let len_as_u64 = html_text.len() as u64;
 
         if ip.is_none() {
@@ -357,7 +359,7 @@ impl Cmsck {
     async fn scan_with_path(&self,domain: &str,path:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}{}", domain,path);
-        let response = self.client.get(&url).send().await?;
+        let response = self.client.get(&url).timeout(Duration::from_secs(5)).send().await?;
         let status = response.status(); // 先获取状态码
         let html_text = response.text().await?; // 再提取文本内容
 
@@ -390,28 +392,53 @@ impl Cmsck {
         Ok(())
 
     }
+    async fn gettitle(&self,html_text: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let document = Html::parse_document(&html_text); // 解析 HTML 文档
+        let title_selector = Selector::parse("title").unwrap_or_else(|_| Selector::parse("*").unwrap());
+        let title = if let Some(title_element) = document.select(&title_selector).next() {
+            title_element.text().collect::<Vec<_>>().join("")
+        } else {
+            "Not found title".to_string()
 
+        };
+        Ok(title)
+    }
     pub async fn scan_with_path_t(&self, domain: &str, path: &str, homepage_hash: &[u8], homepage_length: usize,homepage_url:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}/{}", domain.trim_end_matches('/'), path.trim_start_matches('/'));
-        let response = self.client.get(&url).send().await?;
+        let response = self.client.get(&url).timeout(Duration::from_secs(5)).send().await?;
         let status = response.status(); // 先获取状态码
-        let resp_url = response.url().as_str();
+        if !status.is_success() {
+            return Ok(());
+        }
+        let resp_url = response.url().as_str().to_string();
+        let html_text = response.text().await?; // 再提取文本内容
+        if html_text.clone().contains("404 Not Found") || html_text.clone().contains("\"code\":404,\"msg\":") {
+            return Ok(());
+        }
+
+        // let resp_url = response.url().as_str();
         if resp_url == homepage_url {
             return Ok(());
         }
         if resp_url.contains("=") && resp_url.contains(homepage_url) {
             return Ok(());
         }
-        let html_text = response.text().await?; // 再提取文本内容
-        if !status.is_success() {
-            return Ok(());
+
+        // let document = Html::parse_document(&html_text);
+        // let title_selector = Selector::parse("title").unwrap_or_else(|_| Selector::parse("*").unwrap());
+        // let title = if let Some(title_element) = document.read().unwrap().select(&title_selector).next() {
+        //     title_element.text().collect::<Vec<_>>().join("")
+        // } else {
+        //     return Ok(()); // 如果获取不到 title，直接返回
+        // };
+        let title = self.gettitle(html_text.as_str()).await;
+        if let Ok(t) = title {
+            if t == "Not found title" || t == "403 Forbidden" || t == "安全入口校验失败" {
+                return Ok(());
+            }
         }
 
-
-        if html_text.clone().contains("404 Not Found") || html_text.clone().contains("\"code\":404,\"msg\":") {
-            return Ok(());
-        }
         // 检查状态码
         if status.as_u16() == 403{
             self.bypass_list.push(url.to_string()).await;

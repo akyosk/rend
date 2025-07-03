@@ -15,22 +15,34 @@ use reqwest::Client;
 use serde_json::Value;
 use reqwest::header::HeaderMap;
 use std::collections::HashSet;
+use std::hash::RandomState;
 use crate::infoscan::OtherSets;
 use crate::tofile::other_save_to_file;
+use crate::tofile::realip_to_file;
 use crate::outprint::Print;
+use serde_json::json;
 
 // 定义常量
 const TIMEOUT_DURATION: Duration = Duration::from_millis(500);
 const MAX_CONCURRENT_TASKS: usize = 1000;
-const MAX_PORTS_THRESHOLD: usize = 100;
+const MAX_PORTS_THRESHOLD: usize = 100; // API查询结果端口阈值
+const QUAKE_CDN_THRESHOLD: i32 = 200; // Quake CDN 判断阈值
 
 #[derive(Clone)]
 pub struct ApiKeys {
     pub fofa: String,
     pub shodan: String,
     pub zoomeye: String,
+    pub quake: String,
+    pub yt: String,
 }
-
+struct CdnNum{
+    cnd_num:i32,
+}
+impl CdnNum {
+    fn new() -> CdnNum{CdnNum{cnd_num:0}}
+    fn add_cnd_num(&mut self, cnd_num:i32){ self.cnd_num = cnd_num; }
+}
 struct InfoIPRes {
     ips: InfoPortRes,
 }
@@ -78,7 +90,40 @@ trait InfoPort {
 struct ShodanIp;
 struct FofaIp;
 struct ZoomeyeIp;
+struct QuakeIp; // 假设 QuakeIp 存在且其 fetch 返回 InfoPortRes
+struct QuakeIpCDN;
+struct YtIp;
+#[async_trait]
+impl InfoPort for YtIp {
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,_scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
+        let query = STANDARD.encode(format!("ip=\"{}\"", ip));
+        // let query = base64::encode(format!("ip=\"{}\"",ip));
+        let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",api_keys.yt,query);
+        let response = client.get(&url).send().await?;
+        let mut results = InfoPortRes::new();
+        if !response.status().is_success() {
+            // outprint::Print::errprint(format!("YT error status code: {}", response.status()).as_str());
+            return Ok((results, false));
+        }
+        let json_response = response.json::<Value>().await?;
+        if let Some(data) = json_response.get("data").and_then(|d| d.get("arr")).and_then(|d| d.as_array()) {
+            data.iter().for_each(|data| {
+                if let Some(port) = data.get("port").and_then(|o| o.as_str()) {
+                    results.push(format!("{}:{}",ip,port))
+                }
+            });
+        }
+        if results.ports.len() > 50 {
+            Print::errprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
+        }
+        // } else {
+        //     outprint::Print::infoprint(format!("YT found IP Ports {}",results.ports.len()).as_str());
+        // }
 
+        Ok((results, false))
+    }
+
+}
 #[async_trait]
 impl InfoPort for ZoomeyeIp {
     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,_scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
@@ -146,6 +191,90 @@ impl InfoPort for ShodanIp {
     }
 }
 
+#[async_trait]
+impl InfoPort for QuakeIp {
+    async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client, _scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
+        let url = "https://quake.360.net/api/v3/search/quake_service";
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-quaketoken",
+            api_keys.quake.parse()?,
+        );
+        let query = json!({
+            "query": format!("ip: {}", ip), "start": 0, "size": 100,
+        });
+        let mut results = InfoPortRes::new();
+        let response = client.post(url).json(&query).headers(headers).send().await?;
+        if !response.status().is_success() {
+            // outprint::Print::errprint(format!("Quake error status code: {}", response.status()).as_str());
+            return Ok((results, false));
+        }
+        let json_response = response.json::<Value>().await?;
+        if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
+            // if let Some(message) = json_response.get("message").and_then(|err| err.as_str()) {
+            //    outprint::Print::errprint(message);
+            // }
+            Ok((results, false))
+        }else {
+            let empty_vec = vec![];
+            let data_array = json_response.get("data").and_then(|data| data.as_array()).unwrap_or(&empty_vec);
+            data_array.iter().for_each(|data| {
+                if let Some(port) = data.get("port").and_then(|p| p.as_str()) {
+                    results.push(format!("{}:{}",ip,port))
+                }
+            });
+            if results.ports.len() > MAX_PORTS_THRESHOLD {
+                Print::passprint(format!("The ip {} may be cdn to exclude collection results", ip).as_str());
+                return Ok((InfoPortRes::new(), true)); // Mark as CDN
+            }
+            // } else {
+            //    outprint::Print::infoprint(format!("Quake found IP Ports {}",results.ports.len()).as_str());
+            // }
+            Ok((results, false))
+        }
+    }
+}
+
+
+#[async_trait]
+trait QuakeCdnChecker {
+    async fn fetch_cdn_status(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<CdnNum, Box<dyn Error + Send + Sync>>;
+}
+
+#[async_trait]
+impl QuakeCdnChecker for QuakeIpCDN {
+    async fn fetch_cdn_status(&self, ip: &str, api_keys: ApiKeys, client: &Client) -> Result<CdnNum, Box<dyn Error + Send + Sync>> {
+        let url = "https://quake.360.net/api/v3/search/quake_service";
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-quaketoken",
+            api_keys.quake.parse()?,
+        );
+        let query = json!({
+            "query": format!("ip: {}", ip), "start": 0, "size": 1, // Only need 1 result to get total
+        });
+        let mut results = CdnNum::new();
+        let response = client.post(url).json(&query).headers(headers).send().await?;
+        if !response.status().is_success() {
+            return Ok(results)
+        }
+
+        let json_response = response.json::<Value>().await?;
+        if json_response.get("code").and_then(|code| code.as_u64()) != Some(0) {
+            Ok(results)
+        }else {
+            if let Some(total) = json_response
+                .get("meta")
+                .and_then(|meta| meta.get("pagination"))
+                .and_then(|pagination| pagination.get("total"))
+                .and_then(|total| total.as_i64())
+            {
+                results.add_cnd_num(total as i32);
+            }
+            Ok(results)
+        }
+    }
+}
 #[async_trait]
 impl InfoPort for FofaIp {
     async fn fetch(&self, ip: &str, api_keys: ApiKeys, client: &Client,scan_port_max:u64) -> Result<(InfoPortRes, bool), Box<dyn Error + Send + Sync>> {
@@ -277,7 +406,7 @@ async fn filter_cdn_ips(ips: &Vec<String>) -> Vec<String> {
                     ips.push(ip_clone);
                 }
                 (true, reason) => {
-                    Print::passprint(format!("Skip CDN IP {}: {}", clean_ip, reason).as_str());
+                    Print::passprint(format!("IP {}: {}", clean_ip, reason).as_str());
                 }
             }
         });
@@ -352,7 +481,7 @@ fn check_known_cdn_ranges(ip: &str) -> Option<(bool, String)> {
             if is_ip_in_cidr(&ip_addr, range) {
                 return Some((
                     true,
-                    format!("The IP is in the network segment {}", provider),
+                    format!("is {}", provider),
                 ));
             }
         }
@@ -480,16 +609,17 @@ pub async fn portmain(
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     Print::infoprint(format!("Received {} IP addresses in total", ips.len()).as_str());
 
-    let non_cdn_ips = filter_cdn_ips(ips).await;
-    let non_cdn_ips: Vec<_> = non_cdn_ips.into_iter()
+    let non_cdn_ips_initial = filter_cdn_ips(ips).await;
+    let mut non_cdn_ips_initial: Vec<_> = non_cdn_ips_initial.into_iter()
         .filter(|ip| !ip.is_empty())
         .collect();
-    if non_cdn_ips.is_empty() {
+
+    if non_cdn_ips_initial.is_empty() {
         Print::infoprint("Non-CDN IP addresses not detected, API queries and port scans skipped");
         return Ok(Vec::new());
     }
 
-    Print::infoprint(format!("{} non-CDN IPs detected, starting API queries and port scanning", non_cdn_ips.len()).as_str());
+    Print::infoprint(format!("{} non-CDN IPs initially screened out, starting Quake CDN check and then API queries and port scanning", non_cdn_ips_initial.len()).as_str());
 
     let ips_res = Arc::new(Mutex::new(InfoIPRes::new()));
     let semaphore = Arc::new(Semaphore::new(4));
@@ -497,19 +627,68 @@ pub async fn portmain(
     let fofa_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
     let shodan_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
     let zoomeye_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new()));
+    let quake_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new())); // Unused in this version
+    let yt_port_counts = Arc::new(Mutex::new(Vec::<(String, usize)>::new())); // Unused in this version
 
+    // Quake CDN 判断
+    Print::infoprint("Starting Quake API-based CDN check for initial non-CDN IPs");
+    let quake_cdn_checker = Arc::new(QuakeIpCDN);
+    let mut cdn_check_tasks = vec![];
+    let quake_filtered_ips = Arc::new(Mutex::new(HashSet::new())); // 存储通过 Quake 过滤的非 CDN IP
+
+    for ip in non_cdn_ips_initial.iter() {
+        let permit = semaphore.clone();
+        let checker = Arc::clone(&quake_cdn_checker);
+        let client_clone = client.clone();
+        let api_keys_clone = api_keys.clone();
+        let ip_clone = ip.clone();
+        let quake_filtered_ips_clone = Arc::clone(&quake_filtered_ips);
+
+        let task = tokio::spawn(async move {
+            let _permit = permit.acquire().await.unwrap();
+            match checker.fetch_cdn_status(&ip_clone, api_keys_clone, &client_clone).await {
+                Ok(cdn_num) => {
+                    if cdn_num.cnd_num > QUAKE_CDN_THRESHOLD {
+                        Print::passprint(format!("The ip {} may be CDN by Quake, excluding from further scans", ip_clone).as_str());
+                    } else {
+                        let mut filtered_ips = quake_filtered_ips_clone.lock().await;
+                        filtered_ips.insert(ip_clone); // 添加到通过 Quake 过滤的 IP 列表
+                    }
+                },
+                Err(e) => {
+                    Print::errprint(format!("Quake CDN check failed for {}: {}", ip_clone, e).as_str());
+                    let mut filtered_ips = quake_filtered_ips_clone.lock().await;
+                    filtered_ips.insert(ip_clone); // 如果 Quake 检查失败，则默认不认为是 CDN，继续处理
+                }
+            }
+        });
+        cdn_check_tasks.push(task);
+    }
+    join_all(cdn_check_tasks).await;
+
+    // 更新 non_cdn_ips_initial 为经过 Quake 过滤后的 IP 列表
+    non_cdn_ips_initial = quake_filtered_ips.lock().await.iter().cloned().collect();
+    non_cdn_ips_initial.sort(); // 保持顺序
+
+    Print::bannerprint(format!("Quake CDN filtering completed: {} non-CDN IPs remain", non_cdn_ips_initial.len()).as_str());
+
+    if non_cdn_ips_initial.is_empty() {
+        Print::infoprint("All IPs identified as CDN or no valid IPs remain after Quake check. API queries and port scans skipped");
+        return Ok(Vec::new());
+    }
+
+    // 先执行 Fofa 查询
     Print::infoprint("Starting Fofa API-based port discovery");
     let fofa_fetcher = Arc::new(FofaIp);
     let mut api_tasks = vec![];
-    let fofa_non_cdn_ips = Arc::new(Mutex::new(non_cdn_ips.clone()));
+    let fofa_non_cdn_ips = Arc::new(Mutex::new(HashSet::<String, RandomState>::from_iter(non_cdn_ips_initial.clone()))); // 用于 Fofa 过滤后的 IP 列表
 
-    // 先执行 Fofa 查询
-    for ip in non_cdn_ips.iter() {
+    for ip in non_cdn_ips_initial.iter() {
         let scan_port_max = otherset.scan_port_max.clone();
         let permit = semaphore.clone();
         let fetch = Arc::clone(&fofa_fetcher);
-        let client = client.clone();
-        let api_keys = api_keys.clone(); // 克隆 api_keys 以避免移动
+        let client_clone = client.clone();
+        let api_keys_clone = api_keys.clone();
         let ips_res_clone = Arc::clone(&ips_res);
         let ip_clone = ip.clone();
         let port_counts = Arc::clone(&fofa_port_counts);
@@ -518,7 +697,7 @@ pub async fn portmain(
 
         let task = tokio::spawn(async move {
             let _permit = permit.acquire().await.unwrap();
-            match fetch.fetch(&ip_clone, api_keys, &client,scan_port_max).await {
+            match fetch.fetch(&ip_clone, api_keys_clone, &client_clone,scan_port_max).await {
                 Ok((res, is_cdn)) => {
                     let port_count = res.ports.len();
                     let mut ips_res = ips_res_clone.lock().await;
@@ -541,13 +720,14 @@ pub async fn portmain(
                     // 如果是 CDN，则从列表中移除
                     if is_cdn {
                         let mut fofa_non_cdn_ips = fofa_non_cdn_ips_clone.lock().await;
-                        *fofa_non_cdn_ips = fofa_non_cdn_ips.iter()
-                            .filter(|&x| x != &ip_clone)
-                            .cloned()
-                            .collect();
+                        fofa_non_cdn_ips.remove(&ip_clone); // 从 HashSet 中移除
                     }
                 }
-                Err(_e) => {}
+                Err(_e) => {
+                    // 如果 Fofa 查询失败，默认不认为是 CDN，保留在列表中
+                    let mut fofa_non_cdn_ips = fofa_non_cdn_ips_clone.lock().await;
+                    fofa_non_cdn_ips.insert(ip_clone);
+                }
             }
         });
         api_tasks.push(task);
@@ -565,39 +745,34 @@ pub async fn portmain(
     }
 
     // 根据 Fofa 查询结果决定使用哪个 IP 列表
-    let filtered_non_cdn_ips = if total_ports == 0 {
-        // 如果 Fofa 没有找到任何端口，使用原始的 non_cdn_ips
-        Print::infoprint("Fofa found no ports, using original non-CDN IPs for Shodan and Zoomeye".to_string().as_str());
-        non_cdn_ips.clone()
-    } else {
-        // 否则使用 Fofa 过滤后的 IP 列表
-        let result = fofa_non_cdn_ips.lock().await.clone();
-        Print::bannerprint(format!("After Fofa CDN filtering, {} non-CDN IPs remain", result.len()).as_str());
-        result
-    };
+    let filtered_non_cdn_ips_after_fofa: Vec<String> = fofa_non_cdn_ips.lock().await.iter().cloned().collect();
+    Print::bannerprint(format!("After Fofa CDN filtering, {} non-CDN IPs remain", filtered_non_cdn_ips_after_fofa.len()).as_str());
+
 
     // Shodan 和 Zoomeye 查询
-    Print::infoprint("Starting Shodan and Zoomeye API-based port discovery");
+    Print::infoprint("Starting Shodan and Zoomeye and Quake and YT API-based port discovery");
     let fetchers: Vec<(Arc<dyn InfoPort + Send + Sync>, &str, Arc<Mutex<Vec<(String, usize)>>>)> = vec![
         (Arc::new(ShodanIp), "Shodan", shodan_port_counts.clone()),
         (Arc::new(ZoomeyeIp), "Zoomeye", zoomeye_port_counts.clone()),
+        (Arc::new(QuakeIp), "Quake", quake_port_counts.clone()),
+        (Arc::new(YtIp), "YT", yt_port_counts.clone()),
     ];
 
     let mut api_tasks = vec![];
-    for ip in filtered_non_cdn_ips.iter() {
+    for ip in filtered_non_cdn_ips_after_fofa.iter() { // 使用 Fofa 过滤后的 IP 列表
         for (fetcher, _fetcher_name, port_counts) in &fetchers {
+            let scan_port_max = otherset.scan_port_max.clone();
             let permit = semaphore.clone();
             let fetch = Arc::clone(fetcher);
-            let client = client.clone();
-            let api_keys = api_keys.clone();
+            let client_clone = client.clone();
+            let api_keys_clone = api_keys.clone();
             let ips_res_clone = Arc::clone(&ips_res);
             let ip_clone = ip.clone();
             let port_counts = Arc::clone(port_counts);
             let open_ports_map_clone = Arc::clone(&open_ports_map);
-            let scan_port_max = otherset.scan_port_max.clone();
             let task = tokio::spawn(async move {
                 let _permit = permit.acquire().await.unwrap();
-                match fetch.fetch(&ip_clone, api_keys, &client,scan_port_max).await {
+                match fetch.fetch(&ip_clone, api_keys_clone, &client_clone,scan_port_max).await {
                     Ok((res, _)) => {
                         let port_count = res.ports.len();
                         let mut ips_res = ips_res_clone.lock().await;
@@ -625,7 +800,7 @@ pub async fn portmain(
     }
     join_all(api_tasks).await;
 
-    for (fetcher_name, port_counts) in &[("Shodan", shodan_port_counts), ("Zoomeye", zoomeye_port_counts)] {
+    for (fetcher_name, port_counts) in &[("Shodan", shodan_port_counts), ("Zoomeye", zoomeye_port_counts),("Quake", quake_port_counts),("YT", yt_port_counts)] {
         let port_counts = port_counts.lock().await;
         let total_ports: usize = port_counts.iter().map(|(_, count)| count).sum();
         let ip_count = port_counts.len();
@@ -637,13 +812,14 @@ pub async fn portmain(
     }
     Print::infoprint("API-based port discovery completed");
 
-    if filtered_non_cdn_ips.len() <= otherset.attack_port_number {
+    // 端口扫描
+    if filtered_non_cdn_ips_after_fofa.len() <= otherset.attack_port_number {
         Print::infoprint("Starting full port scan for non-CDN IPs");
         let ips_res_clone = Arc::clone(&ips_res);
         let open_ports_map_clone = Arc::clone(&open_ports_map);
-        let total_ips = filtered_non_cdn_ips.len();
+        let total_ips = filtered_non_cdn_ips_after_fofa.len();
 
-        for (index, ip_str) in filtered_non_cdn_ips.iter().enumerate() {
+        for (index, ip_str) in filtered_non_cdn_ips_after_fofa.iter().enumerate() {
             Print::infoprint(format!("Scanning IP {}/{}: {}", index + 1, total_ips, ip_str).as_str());
             let ip = IpAddr::from_str(ip_str)?;
             let ip_clone_string = ip_str.clone();
@@ -701,5 +877,6 @@ pub async fn portmain(
         Print::infoprint("Port banner identification completed");
     }
 
+    let _ = realip_to_file(filename, &*filtered_non_cdn_ips_after_fofa);
     Ok(unique_ports)
 }

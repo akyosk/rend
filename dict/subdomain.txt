@@ -1,3 +1,6 @@
+custodytest
+appfenfa
+fenfa
 xxl
 old.xxl
 xxl-admin
@@ -10,6 +13,7 @@ dev-job
 dev-nacos
 prod-nacos
 test-job
+dashboard
 xxl-old
 xxl-new
 dev-xxl

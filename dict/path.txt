@@ -4,7 +4,9 @@
 /druid/index.html
 /webroot/decision/login
 /webroot
+/index.php?con=admin&ctl=default&k=GVlcT9GTdBtLMl9swsZMZsVFCOWF2Gj5SYbJ2ruGNT16FUP2iadblrqRB2zCaoAK
 /im/login.html
+/login_btdw.html
 /.env
 /pma
 /phpmyadmin
@@ -15,6 +17,7 @@
 /config/config_global.php.bak
 /config/config.php.bak
 /config/config.bak
+/admin-web
 /rcs/web/index.action
 /admin/index.php
 /admin/login.html

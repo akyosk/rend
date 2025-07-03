@@ -33,7 +33,7 @@ trait Displayinfo{
     async fn display(&mut self,domian:&str,threads: usize,client: Client,api_keys: ApiKeys,otherset:OtherSets);
 }
 
-
+#[allow(dead_code)]
 #[derive(Debug, Deserialize,Clone)]
 pub struct OtherSets {
     pub(crate) keywords: Vec<String>,
@@ -111,7 +111,7 @@ struct InfoNetlas;
 struct InfoC99NL;
 struct InfoAlienvault;
 struct InfoDnsarchive;
-struct InfoIP138;
+// struct InfoIP138;
 struct InfoThreatcrowd;
 struct InfoUrlscan;
 struct InfoBevigil;
@@ -176,8 +176,8 @@ impl Displayinfo for InfoResults {
 
         let apis = port::ApiKeys{
             fofa:api_keys.fofa_key,
-            // quake:api_keys.quake_key,
-            // yt:api_keys.yt_key,
+            quake:api_keys.quake_key,
+            yt:api_keys.yt_key,
             shodan:api_keys.shodan_key,
             zoomeye:api_keys.zoomeye_key,
         };
@@ -255,7 +255,7 @@ impl InfoResults {
 impl InfoFetcher for InfoZone{
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = "https://0.zone/api/data/";
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let q = format!("root_domain={}",domain);
         let data = json!({
         "query": q,
@@ -321,7 +321,7 @@ impl InfoFetcher for InfoZone{
 impl InfoFetcher for InfoRobtex {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://freeapi.robtex.com/pdns/forward/{}?key={}", domain,keys.robtex_key);
-        let client = Client::builder().timeout(Duration::from_secs(25)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(5)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -372,7 +372,7 @@ impl InfoFetcher for InfoRobtex {
 impl InfoFetcher for InfoMyssl {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://myssl.com/api/v1/discover_sub_domain?domain={}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -403,7 +403,7 @@ impl InfoFetcher for InfoMyssl {
 impl InfoFetcher for InfoDnsgrep {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://www.dnsgrep.cn/subdomain/{}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "Cookie",
@@ -453,7 +453,7 @@ impl InfoFetcher for InfoDnsgrep {
 impl InfoFetcher for InfoBevigil {
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("http://osint.bevigil.com/api/{}/subdomains/", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "X-Access-Token",
@@ -486,7 +486,7 @@ impl InfoFetcher for InfoBevigil {
 impl InfoFetcher for InfoUrlscan {
     async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://urlscan.io/api/v1/search/?q=domain:{}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -532,7 +532,7 @@ impl InfoFetcher for InfoUrlscan {
 impl InfoFetcher for InfoThreatcrowd {
     async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("http://ci-www.threatcrowd.org/searchApi/v2/domain/report/?domain={}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -570,7 +570,7 @@ impl InfoFetcher for InfoThreatcrowd {
 impl InfoFetcher for InfoDnsarchive{
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = format!("https://dnsarchive.net/search.php?q={}", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
 
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -607,50 +607,50 @@ impl InfoFetcher for InfoDnsarchive{
 
 }
 
-#[async_trait]
-impl InfoFetcher for InfoIP138 {
-    async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
-        let url = format!("https://chaziyu.com/{}/", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
-        let response = client.get(&url).send().await?;
-        if !response.status().is_success() {
-            outprint::Print::errprint(format!("IP138 error status code: {}", response.status()).as_str());
-            return Ok(InfoResults::new())
-        }
-        let mut results = InfoResults::new();
-        let body = response.text().await?;
-        let document = Html::parse_document(&body);
-
-        // 选择 <tr class="J_link">
-        let row_selector = Selector::parse("tr.J_link").unwrap();
-        let td_selector = Selector::parse("td").unwrap();
-
-        // 遍历符合条件的 <tr>
-        for row in document.select(&row_selector) {
-            let tds: Vec<_> = row.select(&td_selector).collect();
-            if tds.len() > 1 {
-                let domain = tds[1].text().collect::<Vec<_>>().join("").trim().to_string();
-                results.domain_list.push(domain);
-            }
-        }
-        results.clean_all();
-        outprint::Print::infoprint(format!("IP138 found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
-        Ok(results)
-    }
-
-}
+// #[async_trait]
+// impl InfoFetcher for InfoIP138 {
+//     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
+//         let url = format!("https://chaziyu.com/{}/", domain);
+//         let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
+//         let response = client.get(&url).send().await?;
+//         if !response.status().is_success() {
+//             outprint::Print::errprint(format!("IP138 error status code: {}", response.status()).as_str());
+//             return Ok(InfoResults::new())
+//         }
+//         let mut results = InfoResults::new();
+//         let body = response.text().await?;
+//         let document = Html::parse_document(&body);
+//
+//         // 选择 <tr class="J_link">
+//         let row_selector = Selector::parse("tr.J_link").unwrap();
+//         let td_selector = Selector::parse("td").unwrap();
+//
+//         // 遍历符合条件的 <tr>
+//         for row in document.select(&row_selector) {
+//             let tds: Vec<_> = row.select(&td_selector).collect();
+//             if tds.len() > 1 {
+//                 let domain = tds[1].text().collect::<Vec<_>>().join("").trim().to_string();
+//                 results.domain_list.push(domain);
+//             }
+//         }
+//         results.clean_all();
+//         outprint::Print::infoprint(format!("IP138 found Domain {} | found IP {}",results.domain_list.len(), results.ip_list.len()).as_str());
+//         Ok(results)
+//     }
+//
+// }
 #[async_trait]
 impl InfoFetcher for InfoFofa{
     async fn fetch(&self,domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
-        let base64_str;
-        if domain.len() <= 8 {
-            base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
-        } else {
-            base64_str = STANDARD.encode(format!("\"{}\"", domain));
-        }
-        // let base64_str = base64::encode(format!("domain={}", domain));
+        // let base64_str;
+        // if domain.len() <= 8 {
+        //     base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
+        // } else {
+        //     base64_str = STANDARD.encode(format!("\"{}\"", domain));
+        // }
+        let base64_str = STANDARD.encode(format!("domain=\"{}\"", domain));
         let url = format!("https://fofa.info/api/v1/search/all?key={}&qbase64={}&size=100&full=true", keys.fofa_key,base64_str);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Fofa error status code: {}", response.status()).as_str());
@@ -685,7 +685,7 @@ impl InfoFetcher for InfoFofa{
 impl InfoFetcher for InfoAlienvault{
     async fn fetch(&self,domain: &str,_keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://otx.alienvault.com/api/v1/indicators/domain/{}/passive_dns", domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Alienvault error status code: {}", response.status()).as_str());
@@ -717,7 +717,7 @@ impl InfoFetcher for InfoAlienvault{
 impl InfoFetcher for InfoQuake {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults, Box<dyn Error + Send + Sync>> {
         let url = "https://quake.360.net/api/v3/search/quake_service";
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "x-quaketoken",
@@ -827,7 +827,7 @@ impl InfoFetcher for InfoZoomeye{
             "api-key",
             keys.zoomeye_key.parse()?
         );
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(url).headers(headers).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Zoomeye error code: {}", response.status()).as_str());
@@ -863,7 +863,7 @@ impl InfoFetcher for InfoZoomeye{
 impl InfoFetcher for InfoDaydaymap {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = "https://www.daydaymap.com/api/v1/raymap/search/all";
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "api-key",
@@ -918,7 +918,7 @@ impl InfoFetcher for InfoSecuritytrails {
             "accept",
             "application/json".parse()?
         );
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response1 = client.get(&url).headers(headers.clone()).send().await?;
         sleep(TokioDuration::from_secs(3)).await;
         let response2 = client.get(&url2).headers(headers.clone()).send().await?;
@@ -962,7 +962,7 @@ impl InfoFetcher for InfoSecuritytrails {
 impl InfoFetcher for InfoShodan {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.shodan.io/shodan/host/search?key={}&query=hostname:*.{}&facets=country",keys.shodan_key,domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Shodan error status code: {}", response.status()).as_str());
@@ -989,7 +989,7 @@ impl InfoFetcher for InfoHunter {
         let query = STANDARD.encode(format!("domain=\"{}\"", domain));
         // let query = base64::encode(format!("domain=\"{domain}\""));
         let url = format!("https://api.hunter.how/search?api-key={}&query={}&page=1&page_size=100&start_time=2024-01-01&end_time=2025-12-30",keys.hunter_key,query);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Hunter error status code: {}", response.status()).as_str());
@@ -1016,7 +1016,7 @@ impl InfoFetcher for InfoYT {
         let query = STANDARD.encode(format!("domain=\"{}\"", domain));
         // let query = base64::encode(format!("domain=\"{}\"",domain));
         let url = format!("https://hunter.qianxin.com/openApi/search?api-key={}&search={}&page=1&page_size=100&is_web=3&start_time=2024-01-01&end_time=2025-12-28",keys.yt_key,query);
-        let client = Client::builder().timeout(Duration::from_secs(15)).default_headers({
+        let client = Client::builder().timeout(Duration::from_secs(10)).default_headers({
             let mut headers = HeaderMap::new();
             headers.insert("X-Forwarded-For", HeaderValue::from_static("127.0.0.1"));
             headers
@@ -1055,7 +1055,7 @@ impl InfoFetcher for InfoVirustotal {
         headers.insert(
             "x-apikey",keys.virustotal_key.parse()?
         );
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&domain_url).headers(headers).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Virustotal error status code: {}", response.status()).as_str());
@@ -1079,7 +1079,7 @@ impl InfoFetcher for InfoVirustotal {
 impl InfoFetcher for InfoViewDNS {
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.viewdns.info/iphistory/?domain={}&apikey={}&output=json", domain,keys.viewdns_key);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("ViewDNS error status code: {}", response.status()).as_str());
@@ -1103,7 +1103,7 @@ impl InfoFetcher for InfoViewDNS {
 impl InfoFetcher for InfoBinaryedge{
     async fn fetch(&self, domain: &str,keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.binaryedge.io/v2/query/domains/subdomain/{}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "x-key", keys.binaryedge_key.parse()?
@@ -1133,7 +1133,7 @@ impl InfoFetcher for InfoBinaryedge{
 impl InfoFetcher for InfoFullhunt {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://fullhunt.io/api/v1/domain/{domain}/subdomains");
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert(
             "x-api-key", keys.fullhunt_key.parse()?
@@ -1162,7 +1162,7 @@ impl InfoFetcher for InfoFullhunt {
 impl InfoFetcher for InfoWhoisxml {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://subdomains.whoisxmlapi.com/api/v1?apiKey={}&domainName={}",keys.whoisxmlapi_key,domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Whoisxml error status code: {}", response.status()).as_str());
@@ -1186,7 +1186,7 @@ impl InfoFetcher for InfoWhoisxml {
 impl InfoFetcher for InfoDnsdump {
     async fn fetch(&self, domain: &str, keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.dnsdumpster.com/domain/{}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let mut headers = HeaderMap::new();
         headers.insert("x-api-key",keys.dnsdump_key.parse()?);
         let response = client.get(&url).headers(headers).send().await?;
@@ -1262,7 +1262,7 @@ impl InfoFetcher for InfoDnsdump {
 impl InfoFetcher for InfoCrt {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://crt.sh/json?q={}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Crt error status code: {}", response.status()).as_str());
@@ -1287,7 +1287,7 @@ impl InfoFetcher for InfoCrt {
 impl InfoFetcher for InfoChaziyu {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://chaziyu.com/{}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Chaziyu error status code: {}", response.status()).as_str());
@@ -1314,7 +1314,7 @@ impl InfoFetcher for InfoChaziyu {
 impl InfoFetcher for InfoJldc {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://jldc.me/anubis/subdomains/{}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         if !response.status().is_success() {
             outprint::Print::errprint(format!("Jldc error status code: {}", response.status()).as_str());
@@ -1365,7 +1365,7 @@ impl InfoFetcher for InfoSitedossier {
         headers.insert(CONNECTION, HeaderValue::from_static("close"));
 
         // 发送 HTTP 请求
-        let client = reqwest::Client::builder().default_headers(headers).build()?;
+        let client = reqwest::Client::builder().default_headers(headers).timeout(Duration::from_secs(5)).build()?;
         let response = client.get(&url).send().await?;
 
         if !response.status().is_success() {
@@ -1439,7 +1439,7 @@ impl InfoFetcher for InfoRapiddns{
 impl InfoFetcher for InfoCertspotter {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.certspotter.com/v1/issuances?domain={}&include_subdomains=true&expand=dns_names",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         let mut results = InfoResults::new();
         if !response.status().is_success() {
@@ -1469,7 +1469,7 @@ impl InfoFetcher for InfoCertspotter {
 impl InfoFetcher for InfoHackertarget {
     async fn fetch(&self, domain: &str, _keys: &ApiKeys) -> Result<InfoResults,Box<dyn Error + Send + Sync>> {
         let url = format!("https://api.hackertarget.com/hostsearch/?q={}",domain);
-        let client = Client::builder().timeout(Duration::from_secs(15)).build()?;
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let response = client.get(&url).send().await?;
         let mut results = InfoResults::new();
         if !response.status().is_success() {
@@ -1740,7 +1740,7 @@ pub async fn infomain(arg: HashMap<&str, String>, domain: &str, custom_config_pa
         Arc::new(InfoC99NL),
         Arc::new(InfoAlienvault),
         Arc::new(InfoDnsarchive),
-        Arc::new(InfoIP138),
+        // Arc::new(InfoIP138),
         Arc::new(InfoThreatcrowd),
         Arc::new(InfoUrlscan),
         Arc::new(InfoBevigil),
