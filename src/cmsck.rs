@@ -359,7 +359,7 @@ impl Cmsck {
     async fn scan_with_path(&self,domain: &str,path:&str,filename:&str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // let client = Arc::new(Client::builder().timeout(Duration::from_secs(10)).danger_accept_invalid_certs(true).build()?);
         let url = format!("{}{}", domain,path);
-        let response = self.client.get(&url).timeout(Duration::from_secs(5)).send().await?;
+        let response = self.client.get(&url).timeout(Duration::from_secs(10)).send().await?;
         let status = response.status(); // 先获取状态码
         let html_text = response.text().await?; // 再提取文本内容
 

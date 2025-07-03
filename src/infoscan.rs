@@ -182,10 +182,11 @@ impl Displayinfo for InfoResults {
             zoomeye:api_keys.zoomeye_key,
         };
         outprint::Print::infoprint("Start collecting IP port information");
-        if let Ok(res) = port::portmain(&ip_list,&filename,client.clone(),apis, &otherset).await{
-            ip_port_list.extend(res.clone());
-            outprint::Print::bannerprint(format!("A total of {} IP port information were obtained",&res.len()).as_str());
-            match tofile::ip_urls_save_to_file(&filename,&res) {
+        if let Ok((ports, links)) = port::portmain(&ip_list,&filename,client.clone(),apis, &otherset).await{
+            ip_port_list.extend(ports.clone());
+            domain_list.extend(links.clone());
+            outprint::Print::bannerprint(format!("A total of {} IP port information were obtained",&ports.len()).as_str());
+            match tofile::ip_urls_save_to_file(&filename,&ports) {
                 Ok(_) => outprint::Print::bannerprint(format!("IP port information Results saved to {}",&filename).as_str()),
                 Err(e) => outprint::Print::infoprint(format!("Error saving results: {}",e).as_str()),
             }
@@ -724,7 +725,7 @@ impl InfoFetcher for InfoQuake {
             keys.quake_key.parse()?,
         );
         let query = json!({
-            "query": format!("domain: {}", domain),
+            "query": format!("domain: \"{}\"", domain),
             "start": 0,
             "size": 100,
         });

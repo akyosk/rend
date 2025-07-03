@@ -35,6 +35,7 @@
 /cc/login.do
 /vi/login
 /apollo
+/nacos
 /forum.php
 /api-docs
 /status?full=true
